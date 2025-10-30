@@ -1,0 +1,402 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2025-10-27T12:00:00.000Z",
+  "expiresAt": "2026-10-27T12:00:00.000Z",
+  "routes": {
+    "toMoscow": [
+      {
+        "from": "Волгоград",
+        "to": "Москва",
+        "distance": "971 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "7 500 ₽" },
+          { "weight": "1,5 т", "price": "12 140 ₽" },
+          { "weight": "3 т", "price": "18 012 ₽" },
+          { "weight": "5 т", "price": "41 175 ₽" },
+          { "weight": "10 т", "price": "55 537 ₽" },
+          { "weight": "20 т", "price": "57 971 ₽" }
+        ]
+      },
+      {
+        "from": "Екатеринбург",
+        "to": "Москва",
+        "distance": "1660 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "9 043 ₽" },
+          { "weight": "1,5 т", "price": "13 565 ₽" },
+          { "weight": "3 т", "price": "20 347 ₽" },
+          { "weight": "5 т", "price": "44 967 ₽" },
+          { "weight": "10 т", "price": "65 228 ₽" },
+          { "weight": "20 т", "price": "64 574 ₽" }
+        ]
+      },
+      {
+        "from": "Казань",
+        "to": "Москва",
+        "distance": "813 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "7 500 ₽" },
+          { "weight": "1,5 т", "price": "9 592 ₽" },
+          { "weight": "3 т", "price": "14 388 ₽" },
+          { "weight": "5 т", "price": "33 577 ₽" },
+          { "weight": "10 т", "price": "40 156 ₽" },
+          { "weight": "20 т", "price": "45 856 ₽" }
+        ]
+      },
+      {
+        "from": "Краснодар",
+        "to": "Москва",
+        "distance": "1347 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "7 500 ₽" },
+          { "weight": "1,5 т", "price": "10 048 ₽" },
+          { "weight": "3 т", "price": "15 072 ₽" },
+          { "weight": "5 т", "price": "35 418 ₽" },
+          { "weight": "10 т", "price": "50 647 ₽" },
+          { "weight": "20 т", "price": "47 953 ₽" }
+        ]
+      },
+      {
+        "from": "Красноярск",
+        "to": "Москва",
+        "distance": "4041 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "18 830 ₽" },
+          { "weight": "1,5 т", "price": "28 244 ₽" },
+          { "weight": "3 т", "price": "42 366 ₽" },
+          { "weight": "5 т", "price": "95 610 ₽" },
+          { "weight": "10 т", "price": "102 268 ₽" },
+          { "weight": "20 т", "price": "134 566 ₽" }
+        ]
+      },
+      {
+        "from": "Магнитогорск",
+        "to": "Москва",
+        "distance": "1656 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "10 087 ₽" },
+          { "weight": "1,5 т", "price": "15 131 ₽" },
+          { "weight": "3 т", "price": "22 696 ₽" },
+          { "weight": "5 т", "price": "51 144 ₽" },
+          { "weight": "10 т", "price": "73 034 ₽" },
+          { "weight": "20 т", "price": "72 036 ₽" }
+        ]
+      },
+      {
+        "from": "Нижний Новгород",
+        "to": "Москва",
+        "distance": "434 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "7 500 ₽" },
+          { "weight": "1,5 т", "price": "7 500 ₽" },
+          { "weight": "3 т", "price": "7 500 ₽" },
+          { "weight": "5 т", "price": "21 960 ₽" },
+          { "weight": "10 т", "price": "26 516 ₽" },
+          { "weight": "20 т", "price": "39 971 ₽" }
+        ]
+      },
+      {
+        "from": "Новосибирск",
+        "to": "Москва",
+        "distance": "3267 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "14 399 ₽" },
+          { "weight": "1,5 т", "price": "21 598 ₽" },
+          { "weight": "3 т", "price": "32 397 ₽" },
+          { "weight": "5 т", "price": "73 091 ₽" },
+          { "weight": "10 т", "price": "110 079 ₽" },
+          { "weight": "20 т", "price": "102 911 ₽" }
+        ]
+      },
+      {
+        "from": "Ростов-на-Дону",
+        "to": "Москва",
+        "distance": "1078 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "7 500 ₽" },
+          { "weight": "1,5 т", "price": "7 500 ₽" },
+          { "weight": "3 т", "price": "7 500 ₽" },
+          { "weight": "5 т", "price": "24 686 ₽" },
+          { "weight": "10 т", "price": "45 276 ₽" },
+          { "weight": "20 т", "price": "38 161 ₽" }
+        ]
+      },
+      {
+        "from": "Самара",
+        "to": "Москва",
+        "distance": "1090 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "7 500 ₽" },
+          { "weight": "1,5 т", "price": "7 500 ₽" },
+          { "weight": "3 т", "price": "11 812 ₽" },
+          { "weight": "5 т", "price": "34 008 ₽" },
+          { "weight": "10 т", "price": "69 760 ₽" },
+          { "weight": "20 т", "price": "54 609 ₽" }
+        ]
+      },
+      {
+        "from": "Санкт-Петербург",
+        "to": "Москва",
+        "distance": "704 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "7 500 ₽" },
+          { "weight": "1,5 т", "price": "8 236 ₽" },
+          { "weight": "3 т", "price": "12 354 ₽" },
+          { "weight": "5 т", "price": "26 259 ₽" },
+          { "weight": "10 т", "price": "34 003 ₽" },
+          { "weight": "20 т", "price": "39 142 ₽" }
+        ]
+      },
+      {
+        "from": "Сочи",
+        "to": "Москва",
+        "distance": "1624 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "9 255 ₽" },
+          { "weight": "1,5 т", "price": "13 883 ₽" },
+          { "weight": "3 т", "price": "20 824 ₽" },
+          { "weight": "5 т", "price": "42 710 ₽" },
+          { "weight": "10 т", "price": "61 062 ₽" },
+          { "weight": "20 т", "price": "57 814 ₽" }
+        ]
+      },
+      {
+        "from": "Тверь",
+        "to": "Москва",
+        "distance": "183 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "7 500 ₽" },
+          { "weight": "1,5 т", "price": "7 500 ₽" },
+          { "weight": "3 т", "price": "7 500 ₽" },
+          { "weight": "5 т", "price": "17 623 ₽" },
+          { "weight": "10 т", "price": "19 417 ₽" },
+          { "weight": "20 т", "price": "25 529 ₽" }
+        ]
+      },
+      {
+        "from": "Уфа",
+        "to": "Москва",
+        "distance": "1327 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "8 307 ₽" },
+          { "weight": "1,5 т", "price": "12 460 ₽" },
+          { "weight": "3 т", "price": "18 690 ₽" },
+          { "weight": "5 т", "price": "42 155 ₽" },
+          { "weight": "10 т", "price": "48 170 ₽" },
+          { "weight": "20 т", "price": "59 317 ₽" }
+        ]
+      },
+      {
+        "from": "Челябинск",
+        "to": "Москва",
+        "distance": "1919 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "11 692 ₽" },
+          { "weight": "1,5 т", "price": "17 538 ₽" },
+          { "weight": "3 т", "price": "26 307 ₽" },
+          { "weight": "5 т", "price": "59 282 ₽" },
+          { "weight": "10 т", "price": "84 628 ₽" },
+          { "weight": "20 т", "price": "83 477 ₽" }
+        ]
+      }
+    ],
+    "fromMoscow": [
+      {
+        "from": "Москва",
+        "to": "Волгоград",
+        "distance": "971 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "12 976 ₽" },
+          { "weight": "1,5 т", "price": "19 029 ₽" },
+          { "weight": "3 т", "price": "28 544 ₽" },
+          { "weight": "5 т", "price": "57 198 ₽" },
+          { "weight": "10 т", "price": "67 284 ₽" },
+          { "weight": "20 т", "price": "86 519 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Екатеринбург",
+        "distance": "1660 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "18 426 ₽" },
+          { "weight": "1,5 т", "price": "27 016 ₽" },
+          { "weight": "3 т", "price": "40 524 ₽" },
+          { "weight": "5 т", "price": "86 154 ₽" },
+          { "weight": "10 т", "price": "104 248 ₽" },
+          { "weight": "20 т", "price": "122 840 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Казань",
+        "distance": "813 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "10 875 ₽" },
+          { "weight": "1,5 т", "price": "15 948 ₽" },
+          { "weight": "3 т", "price": "23 922 ₽" },
+          { "weight": "5 т", "price": "41 301 ₽" },
+          { "weight": "10 т", "price": "57 803 ₽" },
+          { "weight": "20 т", "price": "72 357 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Краснодар",
+        "distance": "1347 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "19 234 ₽" },
+          { "weight": "1,5 т", "price": "28 202 ₽" },
+          { "weight": "3 т", "price": "42 303 ₽" },
+          { "weight": "5 т", "price": "77 453 ₽" },
+          { "weight": "10 т", "price": "97 648 ₽" },
+          { "weight": "20 т", "price": "128 234 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Красноярск",
+        "distance": "4041 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "42 431 ₽" },
+          { "weight": "1,5 т", "price": "62 234 ₽" },
+          { "weight": "3 т", "price": "93 352 ₽" },
+          { "weight": "5 т", "price": "214 716 ₽" },
+          { "weight": "10 т", "price": "229 302 ₽" },
+          { "weight": "20 т", "price": "282 870 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Магнитогорск",
+        "distance": "1656 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "20 124 ₽" },
+          { "weight": "1,5 т", "price": "29 515 ₽" },
+          { "weight": "3 т", "price": "44 272 ₽" },
+          { "weight": "5 т", "price": "100 980 ₽" },
+          { "weight": "10 т", "price": "115 992 ₽" },
+          { "weight": "20 т", "price": "134 136 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Нижний Новгород",
+        "distance": "434 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "7 500 ₽" },
+          { "weight": "1,5 т", "price": "7 500 ₽" },
+          { "weight": "3 т", "price": "7 500 ₽" },
+          { "weight": "5 т", "price": "22 478 ₽" },
+          { "weight": "10 т", "price": "31 378 ₽" },
+          { "weight": "20 т", "price": "46 004 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Новосибирск",
+        "distance": "3267 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "36 164 ₽" },
+          { "weight": "1,5 т", "price": "53 032 ₽" },
+          { "weight": "3 т", "price": "79 548 ₽" },
+          { "weight": "5 т", "price": "182 703 ₽" },
+          { "weight": "10 т", "price": "212 719 ₽" },
+          { "weight": "20 т", "price": "241 099 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Ростов-на-Дону",
+        "distance": "1078 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "16 010 ₽" },
+          { "weight": "1,5 т", "price": "23 481 ₽" },
+          { "weight": "3 т", "price": "35 222 ₽" },
+          { "weight": "5 т", "price": "63 494 ₽" },
+          { "weight": "10 т", "price": "73 304 ₽" },
+          { "weight": "20 т", "price": "106 722 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Самара",
+        "distance": "1090 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "12 663 ₽" },
+          { "weight": "1,5 т", "price": "18 572 ₽" },
+          { "weight": "3 т", "price": "27 858 ₽" },
+          { "weight": "5 т", "price": "52 756 ₽" },
+          { "weight": "10 т", "price": "71 395 ₽" },
+          { "weight": "20 т", "price": "84 584 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Санкт-Петербург",
+        "distance": "704 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "9 985 ₽" },
+          { "weight": "1,5 т", "price": "14 645 ₽" },
+          { "weight": "3 т", "price": "21 967 ₽" },
+          { "weight": "5 т", "price": "37 875 ₽" },
+          { "weight": "10 т", "price": "51 322 ₽" },
+          { "weight": "20 т", "price": "66 528 ₽" }
+        ]
+      },
+          {
+            "from": "Москва",
+            "to": "Сочи",
+            "distance": "1624 км",
+            "prices": [
+              { "weight": "до 500 кг", "price": "23 193 ₽" },
+              { "weight": "1,5 т", "price": "34 012 ₽" },
+              { "weight": "3 т", "price": "51 018 ₽" },
+              { "weight": "5 т", "price": "93 380 ₽" },
+              { "weight": "10 т", "price": "117 740 ₽" },
+              { "weight": "20 т", "price": "154 605 ₽" }
+            ]
+          },
+      {
+        "from": "Москва",
+        "to": "Тверь",
+        "distance": "183 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "7 500 ₽" },
+          { "weight": "1,5 т", "price": "7 500 ₽" },
+          { "weight": "3 т", "price": "7 500 ₽" },
+          { "weight": "5 т", "price": "20 547 ₽" },
+          { "weight": "10 т", "price": "19 013 ₽" },
+          { "weight": "20 т", "price": "23 424 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Уфа",
+        "distance": "1327 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "16 172 ₽" },
+          { "weight": "1,5 т", "price": "23 718 ₽" },
+          { "weight": "3 т", "price": "35 577 ₽" },
+          { "weight": "5 т", "price": "81 633 ₽" },
+          { "weight": "10 т", "price": "79 095 ₽" },
+          { "weight": "20 т", "price": "107 752 ₽" }
+        ]
+      },
+      {
+        "from": "Москва",
+        "to": "Челябинск",
+        "distance": "1919 км",
+        "prices": [
+          { "weight": "до 500 кг", "price": "23 320 ₽" },
+          { "weight": "1,5 т", "price": "34 206 ₽" },
+          { "weight": "3 т", "price": "51 309 ₽" },
+          { "weight": "5 т", "price": "117 089 ₽" },
+          { "weight": "10 т", "price": "134 460 ₽" },
+          { "weight": "20 т", "price": "155 439 ₽" }
+        ]
+      }
+    ]
+  }
+}
+

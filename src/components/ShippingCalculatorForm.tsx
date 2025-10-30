@@ -665,7 +665,8 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
     const volumeForCalculation = volumeNotSpecified ? 0 : volumeSteps[volumeIndex];
     const volumeForDisplay = volumeNotSpecified ? "Не смог указать" : volumeSteps[volumeIndex];
     
-    const calculationResult = calculateShippingCost(fromCity, toCity, routeDistance, weightSteps[weightIndex], volumeForCalculation);
+    // 🆕 Передаем категорию груза для новой коммерческой логики
+    const calculationResult = calculateShippingCost(fromCity, toCity, routeDistance, weightSteps[weightIndex], volumeForCalculation, transportType);
     if (!calculationResult) {
       toast.error("Ошибка расчёта. Проверьте введенные данные.");
       return;
@@ -1636,7 +1637,8 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                         toCity,
                         routeDistance!,
                         weight,
-                        volume
+                        volume,
+                        transportType  // 🆕 Передаем категорию груза
                       );
                       
                       if (result && result.cost) {
@@ -2048,7 +2050,8 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                         toCity,
                         routeDistance!,
                         weight,
-                        volume
+                        volume,
+                        transportType  // 🆕 Передаем категорию груза
                       );
                       
                       if (result && result.cost) {
@@ -2424,7 +2427,8 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                         toCity,
                         routeDistance!,
                         weight,
-                        volume
+                        volume,
+                        transportType  // 🆕 Передаем категорию груза
                       );
                       
                       if (result && result.cost) {
@@ -2846,7 +2850,8 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                         toCity,
                         routeDistance!,
                         weight,
-                        volume
+                        volume,
+                        transportType  // 🆕 Передаем категорию груза
                       );
                       
                       if (result && result.cost) {

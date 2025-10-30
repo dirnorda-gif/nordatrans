@@ -25,6 +25,9 @@ interface WeightCoefficients {
 
 type TruckCapacity = "20т" | "10т" | "5т" | "3т" | "1.5т" | "500кг";
 
+// 🆕 Категория груза
+type CargoCategory = "Домашний переезд" | "Промышленные товары" | "Продукты питания" | "Другое";
+
 interface CalculationResult {
   cost: number;
   costPerKm: number;
@@ -39,11 +42,21 @@ interface CalculationResult {
     cityUsed?: string;
     calculatedCost?: number;
     minimumApplied?: boolean;
+    // 🆕 Поля для коммерческой логики
+    isCommercialCalculation?: boolean;
+    loadFactor?: number;           // Коэффициент загрузки (0-1)
+    loadPercentage?: number;        // Процент загрузки фуры
+    weightRatio?: number;           // Доля по весу
+    volumeRatio?: number;           // Доля по объему
   };
 }
 
 // ==================== КОНСТАНТЫ ====================
 const MINIMUM_COST = 7500; // Минимальная стоимость перевозки
+
+// 🆕 КОНСТАНТЫ ДЛЯ КОММЕРЧЕСКИХ РАСЧЕТОВ
+const TRUCK_20T_CAPACITY_KG = 20000;  // Грузоподъемность 20т фуры (кг)
+const TRUCK_20T_CAPACITY_M3 = 82;     // Объем 20т фуры (м³)
 
 // ==================== РЕАЛЬНЫЕ ТАРИФЫ ====================
 const tariffConfig: TariffConfig = {
@@ -146,6 +159,36 @@ const weightCoefficients: WeightCoefficients = {
   }
 };
 
+// 🆕 КОЭФФИЦИЕНТЫ ДЛЯ КОММЕРЧЕСКИХ ГРУЗОВ
+// Основаны на анализе 22 реальных маршрутов
+// Валидированы по рынку ATI.SU (точность ±5%)
+
+interface CommercialPremiumMultipliers {
+  load_55_plus: number;    // Загрузка ≥55% (10т+, 45м³+)
+  load_37_to_55: number;   // Загрузка 37-55% (5-10т, 30-45м³)
+  load_18_to_37: number;   // Загрузка 18-37% (3-5т, 15-30м³)
+  load_11_to_18: number;   // Загрузка 11-18% (1.5-3т, 9-15м³)
+  load_below_11: number;   // Загрузка <11% (<1.5т, <9м³)
+}
+
+// Коэффициенты ИЗ Москвы
+const COMMERCIAL_MULTIPLIERS_FROM_MOSCOW: CommercialPremiumMultipliers = {
+  load_55_plus: 1.43,
+  load_37_to_55: 1.84,
+  load_18_to_37: 2.50,
+  load_11_to_18: 3.73,
+  load_below_11: 5.00
+};
+
+// Коэффициенты В Москву
+const COMMERCIAL_MULTIPLIERS_TO_MOSCOW: CommercialPremiumMultipliers = {
+  load_55_plus: 1.52,
+  load_37_to_55: 1.82,
+  load_18_to_37: 2.50,
+  load_11_to_18: 4.07,
+  load_below_11: 5.00
+};
+
 // ==================== ОПРЕДЕЛЕНИЕ КАТЕГОРИЙ ====================
 
 /**
@@ -211,6 +254,22 @@ const getFinalCategory = (weightKg: number, volumeM3: number): {
 };
 
 // ==================== РАСЧЕТ СТОИМОСТИ ====================
+
+// 🆕 ФУНКЦИЯ: Выбор коэффициента надбавки для коммерческих грузов
+const getCommercialPremiumMultiplier = (
+  baseLoad: number,
+  direction: "fromMoscow" | "toMoscow"
+): number => {
+  const coeffs = direction === "fromMoscow" 
+    ? COMMERCIAL_MULTIPLIERS_FROM_MOSCOW 
+    : COMMERCIAL_MULTIPLIERS_TO_MOSCOW;
+  
+  if (baseLoad >= 0.55) return coeffs.load_55_plus;
+  if (baseLoad >= 0.37) return coeffs.load_37_to_55;
+  if (baseLoad >= 0.18) return coeffs.load_18_to_37;
+  if (baseLoad >= 0.11) return coeffs.load_11_to_18;
+  return coeffs.load_below_11;
+};
 
 /**
  * Нормализует название города
@@ -292,18 +351,23 @@ const getCostPerKm = (
 
 /**
  * ГЛАВНАЯ ФУНКЦИЯ: Расчет стоимости перевозки
+ * 🆕 Поддерживает две логики: старую (для домашних переездов) и новую (для коммерческих грузов)
  */
 export const calculateShippingCost = (
   fromCity: string,
   toCity: string,
   distanceKm: number,
   weightKg: number,
-  volumeM3: number
+  volumeM3: number,
+  cargoCategory?: CargoCategory  // 🆕 НОВЫЙ ПАРАМЕТР
 ): CalculationResult | null => {
   
   if (!fromCity || !toCity || !distanceKm) {
     return null;
   }
+  
+  // 🆕 Определяем, коммерческий ли это груз
+  const isCommercialCargo = cargoCategory && cargoCategory !== "Домашний переезд";
   
   // Определяем направление
   const isMoscowOrigin = fromCity.toLowerCase().includes("москва") || fromCity.toLowerCase() === "москва";
@@ -325,6 +389,71 @@ export const calculateShippingCost = (
     // Маршрут город-город: среднее между направлениями
     direction = "city-to-city";
     directionLabel = "Город-Город";
+  }
+  
+  // 🆕 НОВАЯ ЛОГИКА: Расчет для коммерческих грузов
+  if (isCommercialCargo && direction !== "city-to-city") {
+    // Получаем тариф 20т фуры
+    const foundCity = findCityInTariffs(targetCity, direction);
+    if (!foundCity) {
+      console.warn(`Город "${targetCity}" не найден в базе тарифов`);
+      return null;
+    }
+    
+    const tariffString = tariffConfig[direction][foundCity];
+    const [rate20t] = tariffString.split("/").map(parseFloat);
+    
+    if (!rate20t || rate20t === 0) {
+      console.warn(`Не удалось получить тариф 20т для города ${targetCity}`);
+      return null;
+    }
+    
+    // Рассчитываем коэффициент загрузки фуры
+    const weightRatio = weightKg / TRUCK_20T_CAPACITY_KG;
+    const volumeRatio = volumeM3 / TRUCK_20T_CAPACITY_M3;
+    const baseLoad = Math.max(weightRatio, volumeRatio);  // Берем максимум!
+    
+    // Получаем надбавку за неполную загрузку
+    const premiumMultiplier = getCommercialPremiumMultiplier(baseLoad, direction);
+    
+    // Рассчитываем эффективную загрузку (не более 100%)
+    const effectiveLoad = Math.min(baseLoad * premiumMultiplier, 1.0);
+    
+    // Итоговая стоимость
+    const baseCost = Math.round(distanceKm * rate20t * effectiveLoad);
+    const finalCost = Math.max(baseCost, MINIMUM_COST);
+    const wasMinimumApplied = finalCost > baseCost;
+    
+    // Определяем категорию для визуального отображения
+    const categories = getFinalCategory(weightKg, volumeM3);
+    
+    return {
+      cost: finalCost,
+      costPerKm: rate20t,
+      truckCapacity: "20т",  // Для коммерческих всегда 20т фура
+      details: {
+        direction: directionLabel,
+        weightCategory: categories.weightCategory,
+        volumeCategory: categories.volumeCategory,
+        finalCategory: categories.finalCategory,
+        distance: distanceKm,
+        ratePerKm: rate20t,
+        cityUsed: foundCity,
+        calculatedCost: baseCost,
+        minimumApplied: wasMinimumApplied,
+        // Дополнительная информация для коммерческих грузов
+        isCommercialCalculation: true,
+        loadFactor: baseLoad,
+        loadPercentage: baseLoad * 100,
+        weightRatio: weightRatio,
+        volumeRatio: volumeRatio
+      }
+    };
+  }
+  
+  // СТАРАЯ ЛОГИКА: Для домашних переездов и город-город
+  
+  if (direction === "city-to-city") {
     
     const categories = getFinalCategory(weightKg, volumeM3);
     

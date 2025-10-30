@@ -168,8 +168,7 @@ interface CommercialPremiumMultipliers {
   load_37_to_55: number;   // Загрузка 37-55% (5-10т, 30-45м³)
   load_18_to_37: number;   // Загрузка 18-37% (3-5т, 15-30м³)
   load_11_to_18: number;   // Загрузка 11-18% (1.5-3т, 9-15м³)
-  load_5_to_11: number;    // Загрузка 5-11% (0.5-1.5т, 4-9м³)
-  load_below_5: number;    // Загрузка <5% (<0.5т, <4м³)
+  load_below_11: number;   // Загрузка <11% (<1.5т, <9м³)
 }
 
 // Коэффициенты ИЗ Москвы
@@ -178,8 +177,7 @@ const COMMERCIAL_MULTIPLIERS_FROM_MOSCOW: CommercialPremiumMultipliers = {
   load_37_to_55: 1.84,
   load_18_to_37: 2.50,
   load_11_to_18: 3.73,
-  load_5_to_11: 8.5,    // 🆕 Обновлено на основе анализа 24 маршрутов
-  load_below_5: 11.5    // 🆕 Обновлено на основе анализа 24 маршрутов
+  load_below_11: 5.00
 };
 
 // Коэффициенты В Москву
@@ -188,8 +186,7 @@ const COMMERCIAL_MULTIPLIERS_TO_MOSCOW: CommercialPremiumMultipliers = {
   load_37_to_55: 1.82,
   load_18_to_37: 2.50,
   load_11_to_18: 4.07,
-  load_5_to_11: 8.5,    // 🆕 Обновлено на основе анализа 24 маршрутов
-  load_below_5: 11.5    // 🆕 Обновлено на основе анализа 24 маршрутов
+  load_below_11: 5.00
 };
 
 // ==================== ОПРЕДЕЛЕНИЕ КАТЕГОРИЙ ====================
@@ -271,8 +268,7 @@ const getCommercialPremiumMultiplier = (
   if (baseLoad >= 0.37) return coeffs.load_37_to_55;
   if (baseLoad >= 0.18) return coeffs.load_18_to_37;
   if (baseLoad >= 0.11) return coeffs.load_11_to_18;
-  if (baseLoad >= 0.05) return coeffs.load_5_to_11;   // 🆕 Новый диапазон
-  return coeffs.load_below_5;                          // 🆕 Обновлено
+  return coeffs.load_below_11;
 };
 
 /**

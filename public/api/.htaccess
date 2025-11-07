@@ -1,0 +1,45 @@
+# .htaccess для защиты API папки
+
+# Разрешаем доступ к PHP скриптам
+<Files "save-calculation.php">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+<Files "match-call-lead.php">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+# Запрещаем прямой доступ к лог-файлам
+<FilesMatch "\.(log|txt)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Запрещаем листинг директории
+Options -Indexes
+
+# Устанавливаем правильную кодировку
+AddDefaultCharset UTF-8
+
+# Заголовки безопасности для API
+<IfModule mod_headers.c>
+    # CORS для наших скриптов
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "POST, GET, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type"
+    
+    # Защита от XSS
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+</IfModule>
+
+# Настройки PHP (если доступны)
+<IfModule mod_php7.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_value max_execution_time 30
+    php_value post_max_size 10M
+</IfModule>
+

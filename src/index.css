@@ -63,6 +63,17 @@ All colors MUST be HSL.
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --problem: 0 72% 51%;
+    --problem-light: 0 72% 96%;
+    --problem-foreground: 0 0% 100%;
+    
+    --solution: 142 76% 36%;
+    --solution-light: 142 76% 96%;
+    --solution-foreground: 0 0% 100%;
+    
+    --shadow-card: 0 4px 6px -1px hsl(220 60% 50% / 0.1), 0 2px 4px -1px hsl(220 60% 50% / 0.06);
+    --shadow-hover: 0 20px 25px -5px hsl(220 60% 50% / 0.1), 0 10px 10px -5px hsl(220 60% 50% / 0.04);
   }
 
   .dark {
@@ -105,6 +116,14 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --problem: 0 72% 51%;
+    --problem-light: 0 72% 20%;
+    --problem-foreground: 0 0% 100%;
+    
+    --solution: 142 76% 36%;
+    --solution-light: 142 76% 20%;
+    --solution-foreground: 0 0% 100%;
   }
 }
 
@@ -123,6 +142,23 @@ All colors MUST be HSL.
     /* Предотвращаем горизонтальную прокрутку */
     overflow-x: hidden;
   }
+
+  /* 3D Flip Card Utilities */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
 }
 
 /* Дополнительные стили для предотвращения "прыжков" при открытии Select */
@@ -139,5 +175,33 @@ All colors MUST be HSL.
   main,
   section {
     transition: none;
+  }
+}
+
+/* Анимация пульсации для колец - первый вариант (приглушённый) */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(2);
+    opacity: 0.1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Утилита для скрытия scrollbar */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
   }
 }

@@ -25,8 +25,16 @@ interface WeightCoefficients {
 
 type TruckCapacity = "20т" | "10т" | "5т" | "3т" | "1.5т" | "500кг";
 
-// 🆕 Категория груза
-type CargoCategory = "Домашний переезд" | "Промышленные товары" | "Продукты питания" | "Другое";
+// 🆕 Вместимость машин (для пропорционального расчета)
+// Вместимость рассчитывается по формуле: вес_машины / 250 кг (где 250 кг = 1 м³)
+const TRUCK_CAPACITY_M3: Record<TruckCapacity, number> = {
+  "20т": 80,   // 20-тонная фура (20000 кг / 250 = 80 м³, округлено)
+  "10т": 40,   // 10-тонник (10000 кг / 250 = 40 м³)
+  "5т": 20,    // 5-тонник (5000 кг / 250 = 20 м³)
+  "3т": 12,    // 3-тонник (3000 кг / 250 = 12 м³)
+  "1.5т": 6,   // Газель (1500 кг / 250 = 6 м³)
+  "500кг": 2   // Малый фургон (500 кг / 250 = 2 м³)
+};
 
 interface CalculationResult {
   cost: number;
@@ -48,17 +56,163 @@ interface CalculationResult {
     loadPercentage?: number;        // Процент загрузки фуры
     weightRatio?: number;           // Доля по весу
     volumeRatio?: number;           // Доля по объему
+    // 🆕 Поля для малых грузов (≤ 6 м³)
+    isSmallCargo?: boolean;        // Признак малого груза
+    podacha?: number;              // Стоимость подачи
+    costPerM3?: number;            // Стоимость за 1 м³
+    fullGazelleCost?: number;      // Стоимость полной Газели
   };
 }
 
+// ==================== ВЕРСИОНИРОВАНИЕ ТАРИФОВ ====================
+/**
+ * Версия тарифной сетки
+ * ВАЖНО: При изменении тарифов в tariffConfig ОБЯЗАТЕЛЬНО увеличить эту версию!
+ * Это обеспечит автоматическое обнаружение несоответствия с routeCache.json
+ * 
+ * 🆕 ИЗМЕНЕНИЕ v1.3.2 (04.11.2025):
+ * - ИСПРАВЛЕНИЕ ЛОГИКИ ДЛЯ МАРШРУТОВ ГОРОД-ГОРОД
+ * - Теперь используется ТОЛЬКО тариф "Москва → город назначения" (fromMoscow для toCity)
+ * - Ранее ошибочно усреднялись все 4 тарифа (fromMoscow и toMoscow для обоих городов)
+ * - Новая логика проще, безопаснее для бизнеса и соответствует требованиям
+ * - Цены для город-город теперь выше и корректнее
+ * 
+ * v1.3.1 (03.11.2025):
+ * - АВТОМАТИЧЕСКИЙ ПОИСК БЛИЖАЙШЕГО ГОРОДА для городов отсутствующих в базе тарифов
+ * - Использует координаты Яндекс.Карт для определения географически ближайшего города
+ * - ВСЕГДА применяет тариф "Из Москвы" (fromMoscow) для ближайшего города (выше, безопаснее)
+ * - Работает для всех типов маршрутов: Москва-Город, Город-Москва, Город-Город
+ * - Решает проблему с городами типа "Новый Уренгой", "Сургут" и другими
+ * - База координат: 80+ крупнейших городов России
+ * 
+ * v1.3.0 (03.11.2025):
+ * - ЛИНЕЙНАЯ ИНТЕРПОЛЯЦИЯ для отсутствующих тарифов внутри диапазона 20т-1.5т
+ * - Вместо фиксированных коэффициентов используется интерполяция между реальными соседними тарифами
+ * - Для 500кг по-прежнему используется коэффициент (нет нижней точки)
+ * - Устраняет большинство аномалий типа "1.5т дороже 3т"
+ * - Автоматически адаптируется к изменениям тарифов
+ * - Учитывает специфику каждого конкретного маршрута
+ * 
+ * v1.2.0 (03.11.2025):
+ * - СЕГМЕНТНАЯ ИНТЕРПОЛЯЦИЯ между реперными точками для грузов >6 м³
+ * - Реперные точки: 6, 12, 20, 40, 80 м³ (стоимость полных машин)
+ * - Между точками: линейная интерполяция (плавный рост цены)
+ * - Гарантируется 100% совпадение всех реперных точек с аккордеоном
+ */
+export const TARIFF_VERSION = "1.3.2";
+export const TARIFF_UPDATED_AT = "2025-11-04";
+
 // ==================== КОНСТАНТЫ ====================
 const MINIMUM_COST = 7500; // Минимальная стоимость перевозки
+// Палетная модель (для дальнейших расчётов и проверок)
+export const PALLET_VOLUME_M3 = 2;            // 1 палета = 2 м³ (стандартный объем европалеты)
+export const GAZELLE_PALLET_CAPACITY = 4;     // 1.5т машина = 4 палеты (реальная вместимость)
+// Коэффициент пересчета веса в объем для логистического расчета
+const WEIGHT_TO_VOLUME_RATIO = 250;           // 250 кг = 1 м³
+// Стоимость подачи автомобиля (применяется только для грузов ≤ 6 м³)
+// TODO: Калибровать по реальным данным для маршрута Москва-СПб
+const PODACHA = 4000;                         // Стоимость подачи автомобиля
+// Максимальный объем для применения логики с podacha
+const MAX_VOLUME_FOR_PODACHA = 6;            // Применяем podacha для грузов до 6 м³ (1.5т)
 
-// 🆕 КОНСТАНТЫ ДЛЯ КОММЕРЧЕСКИХ РАСЧЕТОВ
-const TRUCK_20T_CAPACITY_KG = 20000;  // Грузоподъемность 20т фуры (кг)
-const TRUCK_20T_CAPACITY_M3 = 82;     // Объем 20т фуры (м³)
+// Вместимость по палетам и предельный вес по категориям
+// РЕАЛЬНАЯ вместимость машин (с учетом практики погрузки)
+const PALLET_CAPACITY_BY_TRUCK: Record<Exclude<TruckCapacity, "500кг">, number> = {
+  "1.5т": 4,   // Газель: 4 палеты (6 м³, плотная укладка)
+  "3т": 6,     // 3т машина: 6 палет (12 м³)
+  "5т": 10,    // 5т машина: 10 палет (20 м³)
+  "10т": 20,   // 10т машина: 20 палет (40 м³)
+  "20т": 33    // 20т фура: 33 палеты (82 м³, с учетом зазоров)
+};
+
+const MAX_WEIGHT_BY_TRUCK_KG: Record<Exclude<TruckCapacity, "500кг">, number> = {
+  "1.5т": 1500,
+  "3т": 3000,
+  "5т": 5000,
+  "10т": 10000,
+  "20т": 20000
+};
+
+/**
+ * Определяет категорию машины по количеству палет и весу
+ */
+const pickTruckByPalletsAndWeight = (pallets: number, totalWeightKg: number): Exclude<TruckCapacity, "500кг"> => {
+  const order: Array<Exclude<TruckCapacity, "500кг">> = ["1.5т", "3т", "5т", "10т", "20т"];
+  for (const cat of order) {
+    const cap = PALLET_CAPACITY_BY_TRUCK[cat];
+    const maxW = MAX_WEIGHT_BY_TRUCK_KG[cat];
+    if (pallets <= cap && totalWeightKg <= maxW) return cat;
+  }
+  return "20т"; // запасной вариант
+};
+
+/**
+ * Расчет стоимости по палетной логике (новая логика: цена палеты от полной 20т фуры)
+ * Определяем сколько палет поместится в 20т фуру (минимум по объему и весу)
+ * Стоимость полной 20т фуры / количество палет = цена одной палеты
+ * Итоговая стоимость = количество палет * цена палеты (минимум 7500 ₽)
+ */
+const calculatePalletBasedCost = (
+  fromOrToCity: string,
+  direction: "fromMoscow" | "toMoscow",
+  distanceKm: number,
+  weightKg: number,
+  volumeM3: number
+) => {
+  // Определяем параметры одной палеты
+  // Логистический объем: берем максимум из фактического объема и объема, рассчитанного по весу
+  // 250 кг = 1 м³
+  const logisticVolume = Math.max(volumeM3, weightKg / WEIGHT_TO_VOLUME_RATIO);
+  const numberOfPallets = Math.max(1, Math.ceil(logisticVolume / PALLET_VOLUME_M3));
+  const palletVolumeM3 = PALLET_VOLUME_M3; // 2 м³ на палету
+  const palletWeightKg = weightKg > 0 ? weightKg / numberOfPallets : 0; // Вес одной палеты
+  
+  // Получаем тариф для 20т фуры
+  const costPerKm20t = getCostPerKm(fromOrToCity, direction, "20т");
+  if (!costPerKm20t || costPerKm20t === 0) return null;
+  
+  // Параметры 20т фуры
+  const TRUCK_20T_VOLUME_M3 = TRUCK_CAPACITY_M3["20т"]; // 80 м³ (20000 кг / 250 = 80 м³)
+  const TRUCK_20T_WEIGHT_KG = 20000; // 20 тонн = 20000 кг
+  
+  // Сколько палет поместится в 20т фуру?
+  // По объёму: floor(80 / объём_палеты)
+  // По весу: floor(20000 / вес_палеты) - только если вес указан
+  // Берём минимум (что ограничивает раньше)
+  const palletsByVolume = Math.floor(TRUCK_20T_VOLUME_M3 / palletVolumeM3);
+  const palletsByWeight = palletWeightKg > 0 
+    ? Math.floor(TRUCK_20T_WEIGHT_KG / palletWeightKg) 
+    : Infinity; // Если вес не указан, ограничение только по объёму
+  const palletsPerFullTruck = Math.min(palletsByVolume, palletsByWeight);
+  
+  // Стоимость полной 20т фуры на этом маршруте
+  const fullTruckCost = Math.round(costPerKm20t * distanceKm);
+  
+  // Цена одной палеты
+  const pricePerPallet = fullTruckCost / palletsPerFullTruck;
+  
+  // Итоговая стоимость = количество палет * цена палеты (минимум 7500 ₽)
+  const calculatedCost = Math.round(numberOfPallets * pricePerPallet);
+  const finalCost = Math.max(calculatedCost, MINIMUM_COST);
+  
+  // Определяем категорию по итоговому количеству палет (для совместимости)
+  const truckCategory = pickTruckByPalletsAndWeight(numberOfPallets, weightKg);
+  
+  return { 
+    cost: finalCost, 
+    category: truckCategory as TruckCapacity, 
+    ratePerKm: costPerKm20t, 
+    pallets: numberOfPallets, 
+    palletsCapacity: palletsPerFullTruck, 
+    isFull: numberOfPallets >= palletsPerFullTruck 
+  };
+};
 
 // ==================== РЕАЛЬНЫЕ ТАРИФЫ ====================
+// ⚠️ ВАЖНО: При изменении ЛЮБОГО тарифа в tariffConfig ОБЯЗАТЕЛЬНО:
+// 1. Увеличить TARIFF_VERSION выше
+// 2. Обновить TARIFF_UPDATED_AT
+// 3. Обновить routeCache.json с новыми ценами и установить tariffVersion
 const tariffConfig: TariffConfig = {
   fromMoscow: {
     "Тула": "153.9/124.0/99.0/0/66.2/0",
@@ -72,9 +226,9 @@ const tariffConfig: TariffConfig = {
     "Чебоксары": "101.8/0/0/0/0/0",
     "Великий Новгород": "98.4/71.4/0/0/0/0",
     "Тамбов": "95.5/0/0/0/0/0",
-    "Санкт-Петербург": "94.5/72.9/53.8/0/33.9/0",
+    "Санкт-Петербург": "94.5/72.9/53.8/40.3/33.9/0",
     "Краснодар": "95.2/72.5/57.5/0/0/0",
-    "Ростов-на-Дону": "99.0/68.0/58.9/0/34.7/0",
+    "Ростов-на-Дону": "99.0/68.0/58.9/46.9/34.7/0",
     "Казань": "89.0/71.1/50.8/0/36.8/0",
     "Воронеж": "88.9/79.5/60.6/0/39.3/0",
     "Волгоград": "89.1/69.3/58.9/0/0/0",
@@ -138,6 +292,93 @@ const tariffConfig: TariffConfig = {
   }
 };
 
+// ==================== КООРДИНАТЫ ГОРОДОВ ====================
+// Координаты центров городов для поиска ближайшего города
+interface CityCoordinates {
+  [city: string]: [number, number]; // [latitude, longitude]
+}
+
+const cityCoordinates: CityCoordinates = {
+  "Москва": [55.7558, 37.6173],
+  "Санкт-Петербург": [59.9343, 30.3351],
+  "Новосибирск": [55.0084, 82.9357],
+  "Екатеринбург": [56.8389, 60.6057],
+  "Казань": [55.8304, 49.0661],
+  "Нижний Новгород": [56.2965, 43.9361],
+  "Челябинск": [55.1644, 61.4368],
+  "Самара": [53.1959, 50.1002],
+  "Омск": [54.9885, 73.3242],
+  "Ростов-на-Дону": [47.2357, 39.7015],
+  "Уфа": [54.7388, 55.9721],
+  "Красноярск": [56.0153, 92.8932],
+  "Воронеж": [51.6605, 39.2005],
+  "Пермь": [58.0105, 56.2502],
+  "Волгоград": [48.7080, 44.5133],
+  "Краснодар": [45.0355, 38.9753],
+  "Саратов": [51.5924, 46.0348],
+  "Тюмень": [57.1530, 65.5343],
+  "Тольятти": [53.5303, 49.3461],
+  "Ижевск": [56.8519, 53.2048],
+  "Барнаул": [53.3481, 83.7799],
+  "Ульяновск": [54.3142, 48.4031],
+  "Иркутск": [52.2869, 104.3050],
+  "Хабаровск": [48.4827, 135.0838],
+  "Ярославль": [57.6261, 39.8845],
+  "Владивосток": [43.1056, 131.8735],
+  "Махачкала": [42.9849, 47.5047],
+  "Томск": [56.4977, 84.9744],
+  "Оренбург": [51.7727, 55.0988],
+  "Кемерово": [55.3547, 86.0861],
+  "Новокузнецк": [53.7577, 87.1360],
+  "Рязань": [54.6269, 39.6916],
+  "Набережные Челны": [55.7430, 52.3951],
+  "Пенза": [53.1950, 45.0184],
+  "Липецк": [52.6109, 39.5986],
+  "Киров": [58.6035, 49.6680],
+  "Чебоксары": [56.1439, 47.2489],
+  "Калининград": [54.7065, 20.5110],
+  "Тула": [54.1961, 37.6182],
+  "Курск": [51.7303, 36.1929],
+  "Ставрополь": [45.0428, 41.9734],
+  "Сочи": [43.6028, 39.7342],
+  "Улан-Удэ": [51.8272, 107.6063],
+  "Тверь": [56.8587, 35.9176],
+  "Магнитогорск": [53.4071, 58.9794],
+  "Иваново": [56.9970, 40.9737],
+  "Брянск": [53.2521, 34.3717],
+  "Белгород": [50.5997, 36.5989],
+  "Сургут": [61.2500, 73.3964],
+  "Владимир": [56.1294, 40.4063],
+  "Чита": [52.0330, 113.4995],
+  "Нижний Тагил": [57.9197, 59.9650],
+  "Архангельск": [64.5401, 40.5433],
+  "Калуга": [54.5293, 36.2754],
+  "Симферополь": [44.9572, 34.1108],
+  "Смоленск": [54.7903, 32.0408],
+  "Волжский": [48.7854, 44.7753],
+  "Курган": [55.4500, 65.3333],
+  "Орёл": [52.9651, 36.0785],
+  "Череповец": [59.1303, 37.9089],
+  "Владикавказ": [43.0231, 44.6820],
+  "Вологда": [59.2239, 39.8843],
+  "Мурманск": [68.9585, 33.0827],
+  "Саранск": [54.1838, 45.1749],
+  "Якутск": [62.0355, 129.6755],
+  "Тамбов": [52.7213, 41.4520],
+  "Петрозаводск": [61.7849, 34.3469],
+  "Кострома": [57.7679, 40.9269],
+  "Благовещенск": [50.2667, 127.5272],
+  "Комсомольск-на-Амуре": [50.5497, 137.0062],
+  "Стерлитамак": [53.6247, 55.9508],
+  "Таганрог": [47.2362, 38.8969],
+  "Йошкар-Ола": [56.6346, 47.8910],
+  "Нижневартовск": [60.9344, 76.5531],
+  "Братск": [56.1515, 101.6140],
+  "Новороссийск": [44.7230, 37.7687],
+  "Великий Новгород": [58.5218, 31.2755],
+  "Вязьма": [55.2103, 34.2963],
+};
+
 // ==================== РЕАЛЬНЫЕ КОЭФФИЦИЕНТЫ ====================
 // Коэффициенты для расчета отсутствующих тарифов относительно 20т
 // Формула: Тариф = Тариф_20т * Коэффициент
@@ -159,35 +400,6 @@ const weightCoefficients: WeightCoefficients = {
   }
 };
 
-// 🆕 КОЭФФИЦИЕНТЫ ДЛЯ КОММЕРЧЕСКИХ ГРУЗОВ
-// Основаны на анализе 22 реальных маршрутов
-// Валидированы по рынку ATI.SU (точность ±5%)
-
-interface CommercialPremiumMultipliers {
-  load_55_plus: number;    // Загрузка ≥55% (10т+, 45м³+)
-  load_37_to_55: number;   // Загрузка 37-55% (5-10т, 30-45м³)
-  load_18_to_37: number;   // Загрузка 18-37% (3-5т, 15-30м³)
-  load_11_to_18: number;   // Загрузка 11-18% (1.5-3т, 9-15м³)
-  load_below_11: number;   // Загрузка <11% (<1.5т, <9м³)
-}
-
-// Коэффициенты ИЗ Москвы
-const COMMERCIAL_MULTIPLIERS_FROM_MOSCOW: CommercialPremiumMultipliers = {
-  load_55_plus: 1.43,
-  load_37_to_55: 1.84,
-  load_18_to_37: 2.50,
-  load_11_to_18: 3.73,
-  load_below_11: 5.00
-};
-
-// Коэффициенты В Москву
-const COMMERCIAL_MULTIPLIERS_TO_MOSCOW: CommercialPremiumMultipliers = {
-  load_55_plus: 1.52,
-  load_37_to_55: 1.82,
-  load_18_to_37: 2.50,
-  load_11_to_18: 4.07,
-  load_below_11: 5.00
-};
 
 // ==================== ОПРЕДЕЛЕНИЕ КАТЕГОРИЙ ====================
 
@@ -255,20 +467,172 @@ const getFinalCategory = (weightKg: number, volumeM3: number): {
 
 // ==================== РАСЧЕТ СТОИМОСТИ ====================
 
-// 🆕 ФУНКЦИЯ: Выбор коэффициента надбавки для коммерческих грузов
-const getCommercialPremiumMultiplier = (
-  baseLoad: number,
-  direction: "fromMoscow" | "toMoscow"
-): number => {
-  const coeffs = direction === "fromMoscow" 
-    ? COMMERCIAL_MULTIPLIERS_FROM_MOSCOW 
-    : COMMERCIAL_MULTIPLIERS_TO_MOSCOW;
+/**
+ * 🆕 СЕГМЕНТНАЯ ИНТЕРПОЛЯЦИЯ между реперными точками (для грузов >6 м³)
+ * Гарантирует плавный рост цены и 100% совпадение с реперными точками
+ */
+const calculateSegmentedCost = (
+  volumeM3: number,
+  weightKg: number,
+  direction: "fromMoscow" | "toMoscow",
+  targetCity: string,
+  distanceKm: number
+): { cost: number; category: TruckCapacity; details: any } | null => {
   
-  if (baseLoad >= 0.55) return coeffs.load_55_plus;
-  if (baseLoad >= 0.37) return coeffs.load_37_to_55;
-  if (baseLoad >= 0.18) return coeffs.load_18_to_37;
-  if (baseLoad >= 0.11) return coeffs.load_11_to_18;
-  return coeffs.load_below_11;
+  // Рассчитываем реперные точки (стоимость полных машин)
+  const referencePoints = [
+    { 
+      volume: 6, 
+      category: "1.5т" as TruckCapacity,
+      cost: getCostPerKm(targetCity, direction, "1.5т") * distanceKm 
+    },
+    { 
+      volume: 12, 
+      category: "3т" as TruckCapacity,
+      cost: getCostPerKm(targetCity, direction, "3т") * distanceKm 
+    },
+    { 
+      volume: 20, 
+      category: "5т" as TruckCapacity,
+      cost: getCostPerKm(targetCity, direction, "5т") * distanceKm 
+    },
+    { 
+      volume: 40, 
+      category: "10т" as TruckCapacity,
+      cost: getCostPerKm(targetCity, direction, "10т") * distanceKm 
+    },
+    { 
+      volume: 80, 
+      category: "20т" as TruckCapacity,
+      cost: getCostPerKm(targetCity, direction, "20т") * distanceKm 
+    }
+  ];
+  
+  // Проверка валидности реперных точек
+  for (const point of referencePoints) {
+    if (!point.cost || point.cost === 0) {
+      console.warn(`Не удалось получить тариф для ${point.category}`);
+      return null;
+    }
+  }
+  
+  // Находим сегмент, в который попадает груз
+  for (let i = 0; i < referencePoints.length - 1; i++) {
+    const p1 = referencePoints[i];
+    const p2 = referencePoints[i + 1];
+    
+    if (volumeM3 <= p2.volume) {
+      // Линейная интерполяция между двумя реперными точками
+      const ratio = (volumeM3 - p1.volume) / (p2.volume - p1.volume);
+      const calculatedCost = Math.round(p1.cost + (p2.cost - p1.cost) * ratio);
+      const finalCost = Math.max(calculatedCost, MINIMUM_COST);
+      
+      // Определяем категорию машины для груза
+      const categories = getFinalCategory(weightKg, volumeM3);
+      
+      return {
+        cost: finalCost,
+        category: categories.finalCategory,
+        details: {
+          costPerKm: p2.cost / distanceKm,
+          calculatedCost,
+          minimumApplied: finalCost !== calculatedCost,
+          segmentStart: p1.volume,
+          segmentEnd: p2.volume,
+          interpolationRatio: ratio,
+          referencePoint1: p1.cost,
+          referencePoint2: p2.cost,
+          isSegmentedCalculation: true
+        }
+      };
+    }
+  }
+  
+  // Для грузов >80 м³ - экстраполяция от последней точки
+  const lastPoint = referencePoints[referencePoints.length - 1];
+  const extraVolume = volumeM3 - lastPoint.volume;
+  const costPerExtraM3 = (lastPoint.cost / lastPoint.volume) * 1.2; // +20% за превышение
+  const calculatedCost = Math.round(lastPoint.cost + extraVolume * costPerExtraM3);
+  const finalCost = Math.max(calculatedCost, MINIMUM_COST);
+  
+  const categories = getFinalCategory(weightKg, volumeM3);
+  
+  return {
+    cost: finalCost,
+    category: "20т",
+    details: {
+      costPerKm: lastPoint.cost / distanceKm,
+      calculatedCost,
+      minimumApplied: finalCost !== calculatedCost,
+      isOverCapacity: true,
+      extraVolume: extraVolume,
+      isSegmentedCalculation: true
+    }
+  };
+};
+
+/**
+ * 🆕 Расчет стоимости для малых грузов (≤ 6 м³) с применением podacha
+ * Логика: podacha + (объем_груза × стоимость_1_м³)
+ * Где стоимость_1_м³ = (стоимость_полной_газели - podacha) / 6
+ * 
+ * Это обеспечивает:
+ * - Для полной газели (6 м³): podacha + (6 × ((полная_стоимость - podacha) / 6)) = полная_стоимость ✓
+ * - Для малых грузов: podacha обеспечивает минимальную рентабельность
+ */
+const calculateSmallCargoCost = (
+  volumeM3: number,
+  weightKg: number,
+  direction: "fromMoscow" | "toMoscow",
+  targetCity: string,
+  distanceKm: number
+): { cost: number; category: TruckCapacity; details: any } | null => {
+  
+  // Получаем тариф для полной газели (1.5т)
+  const costPerKmGazelle = getCostPerKm(targetCity, direction, "1.5т");
+  
+  if (!costPerKmGazelle || costPerKmGazelle === 0) {
+    return null;
+  }
+  
+  // Стоимость полной газели (6 м³) на этом маршруте
+  const fullGazelleCost = costPerKmGazelle * distanceKm;
+  
+  // Вместимость газели (6 м³)
+  const gazelleCapacity = TRUCK_CAPACITY_M3["1.5т"]; // 6 м³
+  
+  // Стоимость 1 м³ рассчитывается из стоимости полной машины БЕЗ podacha
+  // Это гарантирует, что для полной машины итоговая стоимость = fullGazelleCost
+  const costPerM3 = (fullGazelleCost - PODACHA) / gazelleCapacity;
+  
+  // Итоговая стоимость = podacha + (объем × стоимость_1_м³)
+  const calculatedCost = Math.round(PODACHA + (volumeM3 * costPerM3));
+  
+  // Применяем минимум 7500₽
+  const finalCost = Math.max(calculatedCost, MINIMUM_COST);
+  
+  // Определяем категорию машины
+  const categories = getFinalCategory(weightKg, volumeM3);
+  
+  return {
+    cost: finalCost,
+    category: "1.5т", // Для малых грузов всегда используется газель
+    details: {
+      costPerKm: costPerKmGazelle,
+      truckCapacity: gazelleCapacity,
+      podacha: PODACHA,
+      costPerM3: costPerM3,
+      fullGazelleCost: fullGazelleCost,
+      calculatedCost: calculatedCost,
+      minimumApplied: finalCost !== calculatedCost,
+      isSmallCargo: true,
+      loadFactor: volumeM3 / gazelleCapacity,
+      loadPercentage: (volumeM3 / gazelleCapacity) * 100,
+      weightCategory: categories.weightCategory,
+      volumeCategory: categories.volumeCategory,
+      finalCategory: categories.finalCategory
+    }
+  };
 };
 
 /**
@@ -279,9 +643,72 @@ const normalizeCityName = (city: string): string => {
 };
 
 /**
- * Находит город в базе тарифов (с нечетким поиском)
+ * Вычисляет расстояние между двумя точками по формуле Haversine
  */
-const findCityInTariffs = (city: string, direction: "fromMoscow" | "toMoscow"): string | null => {
+const calculateDistance = (
+  lat1: number, 
+  lon1: number, 
+  lat2: number, 
+  lon2: number
+): number => {
+  const R = 6371; // Радиус Земли в км
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+/**
+ * Находит ближайший город из базы тарифов к заданным координатам
+ * 🎯 ВСЕГДА использует направление "fromMoscow" (тарифы выше, безопаснее для бизнеса)
+ */
+const findNearestCity = (
+  targetCoordinates: [number, number]
+): string | null => {
+  // 🔥 ВАЖНО: Всегда ищем в направлении fromMoscow
+  const cities = Object.keys(tariffConfig.fromMoscow);
+  let nearestCity: string | null = null;
+  let minDistance = Infinity;
+  
+  for (const city of cities) {
+    const coords = cityCoordinates[city];
+    if (!coords) continue;
+    
+    const distance = calculateDistance(
+      targetCoordinates[0], 
+      targetCoordinates[1],
+      coords[0],
+      coords[1]
+    );
+    
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestCity = city;
+    }
+  }
+  
+  if (nearestCity) {
+    console.log(`🎯 Город не найден в базе тарифов. Использован ближайший: ${nearestCity} (расстояние: ${Math.round(minDistance)} км)`);
+    console.log(`📊 Будет использован тариф: Москва → ${nearestCity}`);
+  }
+  
+  return nearestCity;
+};
+
+/**
+ * Находит город в базе тарифов (с нечетким поиском и поиском ближайшего)
+ * 🆕 Если город не найден, ищет ближайший город из базы тарифов
+ * 🎯 При поиске ближайшего ВСЕГДА используется направление "fromMoscow"
+ */
+const findCityInTariffs = (
+  city: string, 
+  direction: "fromMoscow" | "toMoscow",
+  coordinates?: [number, number]
+): string | null => {
   const normalizedCity = normalizeCityName(city).toLowerCase();
   const cities = Object.keys(tariffConfig[direction]);
   
@@ -300,25 +727,46 @@ const findCityInTariffs = (city: string, direction: "fromMoscow" | "toMoscow"): 
     }
   }
   
+  // 🆕 Если город не найден и есть координаты - ищем ближайший город
+  // 🎯 ВАЖНО: При поиске ближайшего города direction игнорируется,
+  //           всегда используется "fromMoscow" (тарифы выше)
+  if (coordinates) {
+    console.log(`⚠️ Город "${city}" не найден в базе тарифов. Поиск ближайшего города...`);
+    return findNearestCity(coordinates);
+  }
+  
   return null;
 };
 
 /**
  * Получает стоимость за километр
+ * 🆕 v1.3.0: Использует линейную интерполяцию для отсутствующих тарифов (10т, 5т, 3т, 1.5т)
+ * 🆕 v1.3.1: При использовании ближайшего города ВСЕГДА берёт тариф fromMoscow
+ * Для 500кг используется коэффициент
  */
 const getCostPerKm = (
   city: string,
   direction: "fromMoscow" | "toMoscow",
-  category: TruckCapacity
+  category: TruckCapacity,
+  coordinates?: [number, number]
 ): number => {
-  const foundCity = findCityInTariffs(city, direction);
+  const foundCity = findCityInTariffs(city, direction, coordinates);
   
   if (!foundCity) {
     console.warn(`Город "${city}" не найден в базе тарифов`);
     return 0;
   }
   
-  const tariffString = tariffConfig[direction][foundCity];
+  // 🎯 КРИТИЧЕСКИ ВАЖНО: Если город найден через координаты (ближайший),
+  //    ВСЕГДА используем направление fromMoscow, даже если запрошено toMoscow
+  const wasFoundByCoordinates = coordinates && city.toLowerCase() !== foundCity.toLowerCase();
+  const effectiveDirection = wasFoundByCoordinates ? "fromMoscow" : direction;
+  
+  if (wasFoundByCoordinates) {
+    console.log(`📊 Используется тариф: Москва → ${foundCity} (вместо ${direction === "toMoscow" ? "обратного" : "прямого"} направления)`);
+  }
+  
+  const tariffString = tariffConfig[effectiveDirection][foundCity];
   
   // Парсим: "153.9/124.0/99.0/0/66.2/0"
   const [t20, t10, t5, t3, t15, t500] = tariffString.split("/").map(parseFloat);
@@ -334,13 +782,17 @@ const getCostPerKm = (
   
   let costPerKm = tariffs[category];
   
-  // Если тариф отсутствует (0), рассчитываем через коэффициент от 20т
+  // Если тариф отсутствует (0), применяем интерполяцию или коэффициент
   if (!costPerKm || costPerKm === 0) {
     const base20tRate = tariffs["20т"];
     
-    if (category !== "20т" && base20tRate > 0) {
-      const coefficient = weightCoefficients[direction][category];
+    if (category === "500кг") {
+      // Для 500кг используем коэффициент от 20т
+      const coefficient = weightCoefficients[effectiveDirection]["500кг"];
       costPerKm = base20tRate * coefficient;
+    } else if (category !== "20т" && base20tRate > 0) {
+      // Для 10т, 5т, 3т, 1.5т применяем линейную интерполяцию между соседними реальными тарифами
+      costPerKm = interpolateTariff(tariffs, category, effectiveDirection);
     } else {
       costPerKm = base20tRate;
     }
@@ -350,8 +802,61 @@ const getCostPerKm = (
 };
 
 /**
+ * 🆕 Линейная интерполяция тарифа между соседними реальными значениями
+ * Используется для категорий: 10т, 5т, 3т, 1.5т
+ */
+const interpolateTariff = (
+  tariffs: Record<TruckCapacity, number>,
+  targetCategory: TruckCapacity,
+  direction: "fromMoscow" | "toMoscow"
+): number => {
+  // Порядок категорий и их веса в тоннах
+  const categories: Array<{ cat: TruckCapacity; weight: number }> = [
+    { cat: "20т", weight: 20 },
+    { cat: "10т", weight: 10 },
+    { cat: "5т", weight: 5 },
+    { cat: "3т", weight: 3 },
+    { cat: "1.5т", weight: 1.5 }
+  ];
+  
+  const targetWeight = categories.find(c => c.cat === targetCategory)?.weight;
+  if (!targetWeight) return 0;
+  
+  // Находим ближайшие реальные тарифы снизу и сверху
+  let lowerCategory: { cat: TruckCapacity; weight: number; rate: number } | null = null;
+  let upperCategory: { cat: TruckCapacity; weight: number; rate: number } | null = null;
+  
+  for (const { cat, weight } of categories) {
+    const rate = tariffs[cat];
+    
+    if (rate > 0) { // Есть реальный тариф
+      if (weight < targetWeight && (!lowerCategory || weight > lowerCategory.weight)) {
+        lowerCategory = { cat, weight, rate };
+      }
+      if (weight > targetWeight && (!upperCategory || weight < upperCategory.weight)) {
+        upperCategory = { cat, weight, rate };
+      }
+    }
+  }
+  
+  // Если найдены обе соседние точки - интерполируем
+  if (lowerCategory && upperCategory) {
+    const ratio = (targetWeight - lowerCategory.weight) / (upperCategory.weight - lowerCategory.weight);
+    const interpolated = lowerCategory.rate + (upperCategory.rate - lowerCategory.rate) * ratio;
+    
+    return interpolated;
+  }
+  
+  // Если нет соседних точек - используем коэффициент от 20т (fallback)
+  const base20tRate = tariffs["20т"];
+  const coefficient = weightCoefficients[direction][targetCategory];
+  return base20tRate * (coefficient || 0);
+};
+
+/**
  * ГЛАВНАЯ ФУНКЦИЯ: Расчет стоимости перевозки
- * 🆕 Поддерживает две логики: старую (для домашних переездов) и новую (для коммерческих грузов)
+ * 🆕 Использует пропорциональную логику для всех типов грузов
+ * 🆕 v1.3.1: Поддержка автоматического поиска ближайшего города
  */
 export const calculateShippingCost = (
   fromCity: string,
@@ -359,15 +864,14 @@ export const calculateShippingCost = (
   distanceKm: number,
   weightKg: number,
   volumeM3: number,
-  cargoCategory?: CargoCategory  // 🆕 НОВЫЙ ПАРАМЕТР
+  transportType?: string,
+  fromCoordinates?: [number, number], // 🆕 Координаты города отправления
+  toCoordinates?: [number, number]    // 🆕 Координаты города назначения
 ): CalculationResult | null => {
   
   if (!fromCity || !toCity || !distanceKm) {
     return null;
   }
-  
-  // 🆕 Определяем, коммерческий ли это груз
-  const isCommercialCargo = cargoCategory && cargoCategory !== "Домашний переезд";
   
   // Определяем направление
   const isMoscowOrigin = fromCity.toLowerCase().includes("москва") || fromCity.toLowerCase() === "москва";
@@ -391,96 +895,33 @@ export const calculateShippingCost = (
     directionLabel = "Город-Город";
   }
   
-  // 🆕 НОВАЯ ЛОГИКА: Расчет для коммерческих грузов
-  if (isCommercialCargo && direction !== "city-to-city") {
-    // Получаем тариф 20т фуры
-    const foundCity = findCityInTariffs(targetCity, direction);
-    if (!foundCity) {
-      console.warn(`Город "${targetCity}" не найден в базе тарифов`);
-      return null;
-    }
-    
-    const tariffString = tariffConfig[direction][foundCity];
-    const [rate20t] = tariffString.split("/").map(parseFloat);
-    
-    if (!rate20t || rate20t === 0) {
-      console.warn(`Не удалось получить тариф 20т для города ${targetCity}`);
-      return null;
-    }
-    
-    // Рассчитываем коэффициент загрузки фуры
-    const weightRatio = weightKg / TRUCK_20T_CAPACITY_KG;
-    const volumeRatio = volumeM3 / TRUCK_20T_CAPACITY_M3;
-    const baseLoad = Math.max(weightRatio, volumeRatio);  // Берем максимум!
-    
-    // Получаем надбавку за неполную загрузку
-    const premiumMultiplier = getCommercialPremiumMultiplier(baseLoad, direction);
-    
-    // Рассчитываем эффективную загрузку (не более 100%)
-    const effectiveLoad = Math.min(baseLoad * premiumMultiplier, 1.0);
-    
-    // Итоговая стоимость
-    const baseCost = Math.round(distanceKm * rate20t * effectiveLoad);
-    const finalCost = Math.max(baseCost, MINIMUM_COST);
-    const wasMinimumApplied = finalCost > baseCost;
-    
-    // Определяем категорию для визуального отображения
-    const categories = getFinalCategory(weightKg, volumeM3);
-    
-    return {
-      cost: finalCost,
-      costPerKm: rate20t,
-      truckCapacity: "20т",  // Для коммерческих всегда 20т фура
-      details: {
-        direction: directionLabel,
-        weightCategory: categories.weightCategory,
-        volumeCategory: categories.volumeCategory,
-        finalCategory: categories.finalCategory,
-        distance: distanceKm,
-        ratePerKm: rate20t,
-        cityUsed: foundCity,
-        calculatedCost: baseCost,
-        minimumApplied: wasMinimumApplied,
-        // Дополнительная информация для коммерческих грузов
-        isCommercialCalculation: true,
-        loadFactor: baseLoad,
-        loadPercentage: baseLoad * 100,
-        weightRatio: weightRatio,
-        volumeRatio: volumeRatio
-      }
-    };
-  }
-  
-  // СТАРАЯ ЛОГИКА: Для домашних переездов и город-город
+  // 🆕 ЕДИНАЯ ПРОПОРЦИОНАЛЬНАЯ ЛОГИКА для всех типов грузов
   
   if (direction === "city-to-city") {
-    
+    // Маршрут город-город: используем тариф fromMoscow для города НАЗНАЧЕНИЯ
+    // 🎯 ВАЖНО: Берём только тариф "Москва → город назначения" (выше, безопаснее для бизнеса)
     const categories = getFinalCategory(weightKg, volumeM3);
     
-    // Получаем тарифы для обоих городов
-    const cost1From = getCostPerKm(fromCity, "fromMoscow", categories.finalCategory);
-    const cost1To = getCostPerKm(fromCity, "toMoscow", categories.finalCategory);
-    const cost2From = getCostPerKm(toCity, "fromMoscow", categories.finalCategory);
-    const cost2To = getCostPerKm(toCity, "toMoscow", categories.finalCategory);
+    // Получаем тариф fromMoscow для города назначения (toCity)
+    const costPerKm = getCostPerKm(toCity, "fromMoscow", categories.finalCategory, toCoordinates);
     
-    // Среднее значение
-    const validCosts = [cost1From, cost1To, cost2From, cost2To].filter(c => c > 0);
-    const avgCostPerKm = validCosts.length > 0 
-      ? validCosts.reduce((a, b) => a + b, 0) / validCosts.length 
-      : 0;
-    
-    if (!avgCostPerKm || avgCostPerKm === 0) {
-      console.warn("Не удалось рассчитать среднюю стоимость для маршрута город-город");
+    if (!costPerKm || costPerKm === 0) {
+      console.warn(`Не удалось получить тариф fromMoscow для города "${toCity}"`);
       return null;
     }
     
-    const calculatedCost = Math.round(avgCostPerKm * distanceKm);
+    console.log(`🚛 Город-Город: ${fromCity} → ${toCity}`);
+    console.log(`📊 Используется тариф: Москва → ${toCity} = ${costPerKm.toFixed(2)} руб/км`);
+    
+    // Пропорциональный расчет
+    const truckCapacity = TRUCK_CAPACITY_M3[categories.finalCategory];
+    const loadFactor = Math.max(volumeM3 / truckCapacity, 0.3);
+    const calculatedCost = Math.round(costPerKm * distanceKm * loadFactor);
     const finalCost = Math.max(calculatedCost, MINIMUM_COST);
-    const wasMinimumApplied = finalCost !== calculatedCost;
     
     return {
       cost: finalCost,
-      costPerKm: avgCostPerKm,
+      costPerKm: costPerKm,
       truckCapacity: categories.finalCategory,
       details: {
         direction: directionLabel,
@@ -488,47 +929,83 @@ export const calculateShippingCost = (
         volumeCategory: categories.volumeCategory,
         finalCategory: categories.finalCategory,
         distance: distanceKm,
-        ratePerKm: avgCostPerKm,
+        ratePerKm: costPerKm,
         calculatedCost: calculatedCost,
-        minimumApplied: wasMinimumApplied
+        minimumApplied: finalCost !== calculatedCost,
+        cityUsed: toCity
       }
     };
   }
   
-  // Определяем категорию машины
-  const categories = getFinalCategory(weightKg, volumeM3);
-  
-  // Получаем стоимость за км
-  const costPerKm = getCostPerKm(targetCity, direction, categories.finalCategory);
-  
-  if (!costPerKm || costPerKm === 0) {
-    console.warn(`Не удалось получить тариф для города ${targetCity}`);
+  // Маршруты из/в Москву: сначала пробуем палетную логику (DOGRUZ), затем при необходимости пропорциональную
+  // Передаём координаты целевого города (не Москвы)
+  const targetCoords = isMoscowOrigin ? toCoordinates : fromCoordinates;
+  const foundCity = findCityInTariffs(targetCity, direction, targetCoords);
+  if (!foundCity) {
+    console.warn(`Город "${targetCity}" не найден в базе тарифов`);
     return null;
   }
   
-  // Рассчитываем стоимость
-  const calculatedCost = Math.round(costPerKm * distanceKm);
+  // 🆕 Для малых грузов (≤ 6 м³) применяем логику с podacha
+  // Рассчитываем логистический объем: max(объем, вес/250)
+  const logisticVolume = Math.max(volumeM3, weightKg / WEIGHT_TO_VOLUME_RATIO);
+  if (logisticVolume <= MAX_VOLUME_FOR_PODACHA) {
+    const smallCargoResult = calculateSmallCargoCost(volumeM3, weightKg, direction, foundCity, distanceKm);
+    if (smallCargoResult) {
+      const categories = getFinalCategory(weightKg, volumeM3);
+      return {
+        cost: smallCargoResult.cost,
+        costPerKm: smallCargoResult.details.costPerKm,
+        truckCapacity: smallCargoResult.category,
+        details: {
+          direction: directionLabel,
+          weightCategory: categories.weightCategory,
+          volumeCategory: categories.volumeCategory,
+          finalCategory: categories.finalCategory,
+          distance: distanceKm,
+          ratePerKm: smallCargoResult.details.costPerKm,
+          cityUsed: foundCity,
+          calculatedCost: smallCargoResult.details.calculatedCost,
+          minimumApplied: smallCargoResult.details.minimumApplied,
+          isSmallCargo: true,
+          podacha: smallCargoResult.details.podacha,
+          costPerM3: smallCargoResult.details.costPerM3,
+          fullGazelleCost: smallCargoResult.details.fullGazelleCost,
+          loadFactor: smallCargoResult.details.loadFactor,
+          loadPercentage: smallCargoResult.details.loadPercentage
+        }
+      };
+    }
+  }
   
-  // Применяем минимальную стоимость
-  const finalCost = Math.max(calculatedCost, MINIMUM_COST);
-  const wasMinimumApplied = finalCost !== calculatedCost;
+  // 🆕 ИЗМЕНЕНИЕ v1.2.0: Сегментная интерполяция для ВСЕХ грузов > 6 м³
+  // Линейная интерполяция между реперными точками (6, 12, 20, 40, 80 м³)
+  // Гарантирует 100% совпадение с реперными точками и плавный рост цены без аномалий
   
-  const foundCity = findCityInTariffs(targetCity, direction);
+  // Сегментная интерполяция по объему (для всех объемов > 6 м³)
+  const result = calculateSegmentedCost(volumeM3, weightKg, direction, foundCity, distanceKm);
+  
+  if (!result) {
+    console.warn(`Не удалось рассчитать стоимость для ${targetCity}`);
+    return null;
+  }
+  
+  const categories = getFinalCategory(weightKg, volumeM3);
   
   return {
-    cost: finalCost,
-    costPerKm: costPerKm,
-    truckCapacity: categories.finalCategory,
+    cost: result.cost,
+    costPerKm: result.details.costPerKm,
+    truckCapacity: result.category,
     details: {
       direction: directionLabel,
       weightCategory: categories.weightCategory,
       volumeCategory: categories.volumeCategory,
       finalCategory: categories.finalCategory,
       distance: distanceKm,
-      ratePerKm: costPerKm,
-      cityUsed: foundCity || undefined,
-      calculatedCost: calculatedCost,
-      minimumApplied: wasMinimumApplied
+      ratePerKm: result.details.costPerKm,
+      cityUsed: foundCity,
+      calculatedCost: result.details.calculatedCost,
+      minimumApplied: result.details.minimumApplied
     }
   };
 };
@@ -546,5 +1023,43 @@ export const formatTruckCapacity = (capacity: TruckCapacity): string => {
     "20т": "20 тонн"
   };
   return labels[capacity];
+};
+
+/**
+ * 🆕 Генерирует сетку цен для калибровки podacha
+ * Выводит расчетные стоимости для объемов от 1 до 6 м³ на заданном маршруте
+ * Используется для сравнения с реальными ценами и калибровки значения PODACHA
+ */
+export const generatePriceGrid = (
+  fromCity: string,
+  toCity: string,
+  distanceKm: number
+): Array<{ volume: number; calculatedCost: number; details: any }> | null => {
+  const grid: Array<{ volume: number; calculatedCost: number; details: any }> = [];
+  
+  // Генерируем сетку от 1 до 6 м³
+  for (let volume = 1; volume <= 6; volume++) {
+    // Для каждого объема рассчитываем вес (по логике 250 кг = 1 м³)
+    const weightKg = volume * WEIGHT_TO_VOLUME_RATIO;
+    
+    const result = calculateShippingCost(fromCity, toCity, distanceKm, weightKg, volume);
+    
+    if (result) {
+      grid.push({
+        volume,
+        calculatedCost: result.cost,
+        details: {
+          podacha: result.details.podacha,
+          costPerM3: result.details.costPerM3,
+          fullGazelleCost: result.details.fullGazelleCost,
+          minimumApplied: result.details.minimumApplied,
+          isSmallCargo: result.details.isSmallCargo,
+          ratePerKm: result.details.ratePerKm
+        }
+      });
+    }
+  }
+  
+  return grid.length > 0 ? grid : null;
 };
 

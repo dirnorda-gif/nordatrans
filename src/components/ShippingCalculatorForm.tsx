@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calculator, Phone, MessageCircle, Truck, Download, Package, Home, ShoppingCart, MapPin, X } from "lucide-react";
+import { Calculator, Phone, MessageCircle, Truck, Download, Package, Home, ShoppingCart, MapPin, X, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { calculateShippingCost, formatTruckCapacity } from "@/utils/shippingCalculator";
 import { createBitrix24Lead } from "@/utils/bitrix24";
 import { toast } from "sonner";
+import { TruckVisualization } from "@/components/TruckVisualization";
+import { MovingConstructor, type SelectedItem } from "@/components/MovingConstructor";
 
 // ============================================================================
 // ТИПЫ ПРОПСОВ (Группировка для удобства)
@@ -149,25 +151,32 @@ export const ShippingCalculatorForm = ({
   // 🎯 State для валидации полей второго шага - Домашний переезд
   const [movingItemsError, setMovingItemsError] = useState(false);
   const [volumeError, setVolumeError] = useState(false);
+  const [weightError, setWeightError] = useState(false);
+  const [isConstructorOpen, setIsConstructorOpen] = useState(false);
+  const [constructorItems, setConstructorItems] = useState<SelectedItem[] | undefined>(undefined);
+  const [constructorFloorUtilization, setConstructorFloorUtilization] = useState<number | undefined>(undefined);
+  const [constructorRecommendedTruck, setConstructorRecommendedTruck] = useState<string | undefined>(undefined);
   
   // 🎯 State для валидации полей второго шага - Промышленные товары
   const [cargoPackagingError, setCargoPackagingError] = useState(false);
   const [cargoNatureError, setCargoNatureError] = useState(false);
   const [palletCountError, setPalletCountError] = useState(false);
-  const [cannotSpecifyVolume, setCannotSpecifyVolume] = useState(false);
-  
+  const [palletWeightPerKg, setPalletWeightPerKg] = useState<string>("");
+  const [palletWeightPerKgError, setPalletWeightPerKgError] = useState(false);
   // 🎯 State для валидации полей второго шага - Продукты питания
   const [truckTypeError, setTruckTypeError] = useState(false);
   const [foodPackagingError, setFoodPackagingError] = useState(false);
   const [foodPalletCountError, setFoodPalletCountError] = useState(false);
-  const [cannotSpecifyVolumeFood, setCannotSpecifyVolumeFood] = useState(false);
-  
+  const [foodPalletWeightPerKg, setFoodPalletWeightPerKg] = useState<string>("");
+  const [foodPalletWeightPerKgError, setFoodPalletWeightPerKgError] = useState(false);
   // 🎯 State для валидации полей второго шага - Другое
   const [otherPackagingError, setOtherPackagingError] = useState(false);
   const [otherPalletCountError, setOtherPalletCountError] = useState(false);
+  const [otherPalletWeightPerKg, setOtherPalletWeightPerKg] = useState<string>("");
+  const [otherPalletWeightPerKgError, setOtherPalletWeightPerKgError] = useState(false);
   const [otherNatureError, setOtherNatureError] = useState(false);
-  const [cannotSpecifyVolumeOther, setCannotSpecifyVolumeOther] = useState(false);
-  
+  // 🎯 State для валидации третьего шага
+  const [userContactError, setUserContactError] = useState(false);
   // 🗺️ State для подсказок поля "Откуда"
   const [fromSuggestions, setFromSuggestions] = useState<Suggestion[]>([]);
   const [showFromSuggestions, setShowFromSuggestions] = useState(false);
@@ -295,10 +304,10 @@ export const ShippingCalculatorForm = ({
   const weightSteps = useMemo(() => {
     if (transportType === "Домашний переезд") {
       // Для ЧАСТНЫХ ЛИЦ (Домашний переезд)
-      return [200, 300, 500, 700, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 19000, 20000]; // в кг
+      return [0, 200, 300, 500, 700, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 19000, 20000]; // в кг
     } else {
       // Для КОМПАНИЙ (все остальные типы перевозки)
-      return [200, 300, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 19000, 20000]; // в кг
+      return [0, 200, 300, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 19000, 20000]; // в кг
     }
   }, [transportType]);
 
@@ -307,8 +316,8 @@ export const ShippingCalculatorForm = ({
       // Для ЧАСТНЫХ ЛИЦ (Домашний переезд) - от 0 до 82 м³ с шагом 1
       return Array.from({length: 83}, (_, i) => i); // [0, 1, 2, 3, ... 82] в м³
     } else {
-      // Для КОМПАНИЙ (все остальные типы перевозки) - от 1 до 82 м³ с шагом 1
-      return Array.from({length: 82}, (_, i) => i + 1); // [1, 2, 3, ... 82] в м³
+      // Для КОМПАНИЙ (все остальные типы перевозки) - от 0 до 82 м³ с шагом 1
+      return Array.from({length: 83}, (_, i) => i); // [0, 1, 2, 3, ... 82] в м³
     }
   }, [transportType]);
 
@@ -336,6 +345,14 @@ export const ShippingCalculatorForm = ({
       setTransportTypeError(false);
     }
   }, [transportType, transportTypeError]);
+
+  useEffect(() => {
+    if (transportType !== "Домашний переезд") {
+      setConstructorItems(undefined);
+      setConstructorFloorUtilization(undefined);
+      setConstructorRecommendedTruck(undefined);
+    }
+  }, [transportType]);
   
   // ============================================================================
   // ЭФФЕКТЫ - Закрытие подсказок при клике вне компонента
@@ -477,6 +494,20 @@ export const ShippingCalculatorForm = ({
     setUserContact(formatted);
   };
 
+const findClosestVolumeIndex = (targetVolume: number, steps: number[]) => {
+  if (steps.length === 0) return 0;
+  let closestIndex = 0;
+  let smallestDiff = Math.abs(steps[0] - targetVolume);
+  for (let i = 1; i < steps.length; i++) {
+    const diff = Math.abs(steps[i] - targetVolume);
+    if (diff < smallestDiff) {
+      smallestDiff = diff;
+      closestIndex = i;
+    }
+  }
+  return closestIndex;
+};
+
   // Информация о типах машин по объёму
   const getTruckInfoByVolume = (volume: number) => {
     if (volume <= 3) return { name: "Газель", capacity: "до 1,5 т", volumeCapacity: "до 9 м³", dimensions: "Д: 3м × Ш: 2м × В: 1,8м", description: "Идеально для небольших переездов" };
@@ -489,9 +520,7 @@ export const ShippingCalculatorForm = ({
 
   // Функция скачивания расчёта
   const downloadCalculation = () => {
-    // Определяем, активен ли чекбокс "Не могу указать объем" для текущего типа груза
-    const volumeNotSpecified = cannotSpecifyVolume || cannotSpecifyVolumeFood || cannotSpecifyVolumeOther;
-    const volumeText = volumeNotSpecified ? "Не смог указать" : `${volumeSteps[volumeIndex]} м³`;
+    const volumeText = `${volumeSteps[volumeIndex]} м³`;
     
     const calculationData = `
 ╔════════════════════════════════════════════════════════════╗
@@ -523,18 +552,17 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🚛 РЕКОМЕНДУЕМЫЙ ТРАНСПОРТ:
-   ${volumeNotSpecified ? 'Будет определён менеджером' : getTruckInfoByVolume(volumeSteps[volumeIndex]).name}
-   Грузоподъёмность: ${volumeNotSpecified ? 'Уточняется' : getTruckInfoByVolume(volumeSteps[volumeIndex]).capacity}
-   Объём кузова: ${volumeNotSpecified ? 'Уточняется' : getTruckInfoByVolume(volumeSteps[volumeIndex]).volumeCapacity}
-   Размеры: ${volumeNotSpecified ? 'Уточняются' : getTruckInfoByVolume(volumeSteps[volumeIndex]).dimensions}
+   ${getTruckInfoByVolume(volumeSteps[volumeIndex]).name}
+   Грузоподъёмность: ${getTruckInfoByVolume(volumeSteps[volumeIndex]).capacity}
+   Объём кузова: ${getTruckInfoByVolume(volumeSteps[volumeIndex]).volumeCapacity}
+   Размеры: ${getTruckInfoByVolume(volumeSteps[volumeIndex]).dimensions}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💰 ПРИМЕРНАЯ СТОИМОСТЬ: ${estimatedCost.toLocaleString()} ₽
 
-⚠️  ВАЖНО: Это предварительный расчёт на основе указанных данных.
-    Для получения точной стоимости с учётом всех деталей
-    свяжитесь с нашим менеджером.
+⚠️  ВАЖНО: Это предварительный расчёт на основе указанных данных.<br />
+  Отправьте эту форму, указав как вы хотите получить точный расчёт.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -564,6 +592,31 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   };
+
+const handleConstructorApplyFactory = (
+  setIsConstructorOpen: (value: boolean) => void,
+  setVolumeIndex: (value: number) => void,
+  setConstructorItems: (items: SelectedItem[] | undefined) => void,
+  setConstructorFloorUtilization: (value: number | undefined) => void,
+  setConstructorRecommendedTruck: (value: string | undefined) => void,
+  setShowFinalPrice: (value: boolean) => void,
+  volumeSteps: number[]
+) => (
+  totalVolume: number,
+  recommendedTruck?: string,
+  floorUtilization?: number,
+  selectedItems?: SelectedItem[]
+) => {
+  setIsConstructorOpen(false);
+  const sanitizedVolume = Math.max(0, Math.round(totalVolume));
+  const targetIndex = findClosestVolumeIndex(sanitizedVolume, volumeSteps);
+  setVolumeIndex(targetIndex);
+  setConstructorItems(selectedItems && selectedItems.length ? selectedItems : undefined);
+  setConstructorFloorUtilization(floorUtilization);
+  setConstructorRecommendedTruck(recommendedTruck);
+  setShowFinalPrice(false);
+  toast.success(`Объём из конструктора: ${volumeSteps[targetIndex]} м³${recommendedTruck ? ` • ${recommendedTruck}` : ''}`);
+};
 
   // Функция расчета расстояния по формуле Haversine
   const calculateHaversineDistance = (lon1: number, lat1: number, lon2: number, lat2: number): number => {
@@ -649,7 +702,7 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
   // Отправка заявки в Bitrix24
   const handleSubmitCalculation = async () => {
     if (!userContact || userContact.trim() === "") {
-      toast.error("Пожалуйста, укажите номер телефона или WhatsApp");
+      setUserContactError(true);
       return;
     }
     if (!fromCity || !toCity) {
@@ -660,12 +713,9 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
       toast.error("Не удалось рассчитать расстояние. Проверьте адреса.");
       return;
     }
-    // Определяем, активен ли чекбокс "Не могу указать объем"
-    const volumeNotSpecified = cannotSpecifyVolume || cannotSpecifyVolumeFood || cannotSpecifyVolumeOther;
-    const volumeForCalculation = volumeNotSpecified ? 0 : volumeSteps[volumeIndex];
-    const volumeForDisplay = volumeNotSpecified ? "Не смог указать" : volumeSteps[volumeIndex];
+    const volumeForCalculation = volumeSteps[volumeIndex];
+    const volumeForDisplay = volumeSteps[volumeIndex];
     
-    // 🆕 Передаем категорию груза для новой коммерческой логики
     const calculationResult = calculateShippingCost(fromCity, toCity, routeDistance, weightSteps[weightIndex], volumeForCalculation, transportType);
     if (!calculationResult) {
       toast.error("Ошибка расчёта. Проверьте введенные данные.");
@@ -685,6 +735,9 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
         appliancesDetails: transportType === "Домашний переезд" && appliancesDetails ? appliancesDetails : undefined,
         cargoPackaging: transportType === "Промышленные товары" && cargoPackaging ? cargoPackaging : undefined,
         palletCount: transportType === "Промышленные товары" && palletCount ? palletCount : undefined,
+        palletWeightPerKg: (transportType === "Промышленные товары" && cargoPackaging === 'pallets' && palletWeightPerKg) ? palletWeightPerKg :
+          (transportType === "Продукты питания" && foodPackaging === 'pallets' && foodPalletWeightPerKg) ? foodPalletWeightPerKg :
+          (transportType === "Другое" && otherPackaging === 'pallets' && otherPalletWeightPerKg) ? otherPalletWeightPerKg : undefined,
         cargoNature: transportType === "Промышленные товары" && cargoNature ? cargoNature : undefined,
         truckType: transportType === "Продукты питания" && truckType ? truckType : undefined,
         temperatureMode: transportType === "Продукты питания" && temperatureMode ? temperatureMode : undefined,
@@ -716,6 +769,13 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
   // ============================================================================
   // USE EFFECTS
   // ============================================================================
+
+  // Автоматическое открытие формы контактов при показе третьего шага
+  useEffect(() => {
+    if (showFinalPrice && estimatedCost > 0) {
+      setShowContactForm(true);
+    }
+  }, [showFinalPrice, estimatedCost]);
 
   // Автоматический расчет маршрута при изменении координат
   useEffect(() => {
@@ -749,12 +809,13 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
     if (transportType === "Домашний переезд") {
       const volume = volumeSteps[volumeIndex];
       // Для частных лиц используем более точные шаги веса
-      if (volume <= 3) setWeightIndex(1); // 300 кг
-      else if (volume <= 9) setWeightIndex(3); // 700 кг
-      else if (volume <= 15) setWeightIndex(5); // 2 т
-      else if (volume <= 30) setWeightIndex(7); // 4 т
-      else if (volume <= 45) setWeightIndex(10); // 7 т
-      else setWeightIndex(15); // 12 т
+      if (volume === 0) setWeightIndex(0); // 0 кг
+      else if (volume <= 3) setWeightIndex(2); // 300 кг
+      else if (volume <= 9) setWeightIndex(4); // 700 кг
+      else if (volume <= 15) setWeightIndex(6); // 2 т
+      else if (volume <= 30) setWeightIndex(8); // 4 т
+      else if (volume <= 45) setWeightIndex(11); // 7 т
+      else setWeightIndex(16); // 12 т
     }
   }, [volumeIndex, transportType]);
 
@@ -763,12 +824,12 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
     if (transportType === "Промышленные товары" && cargoPackaging === "pallets" && palletCount) {
       const pallets = parseInt(palletCount);
       if (isNaN(pallets) || pallets <= 0) return;
-      if (pallets <= 2) { setVolumeIndex(2); setWeightIndex(2); }
-      else if (pallets <= 4) { setVolumeIndex(3); setWeightIndex(3); }
-      else if (pallets <= 6) { setVolumeIndex(4); setWeightIndex(4); }
-      else if (pallets <= 10) { setVolumeIndex(5); setWeightIndex(5); }
-      else if (pallets <= 17) { setVolumeIndex(6); setWeightIndex(6); }
-      else { setVolumeIndex(7); setWeightIndex(7); }
+      if (pallets <= 2) { setVolumeIndex(3); setWeightIndex(3); }
+      else if (pallets <= 4) { setVolumeIndex(4); setWeightIndex(4); }
+      else if (pallets <= 6) { setVolumeIndex(5); setWeightIndex(5); }
+      else if (pallets <= 10) { setVolumeIndex(6); setWeightIndex(6); }
+      else if (pallets <= 17) { setVolumeIndex(7); setWeightIndex(7); }
+      else { setVolumeIndex(8); setWeightIndex(8); }
     }
   }, [palletCount, transportType, cargoPackaging]);
 
@@ -777,12 +838,12 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
     if (transportType === "Продукты питания" && foodPackaging === "pallets" && foodPalletCount) {
       const pallets = parseInt(foodPalletCount);
       if (isNaN(pallets) || pallets <= 0) return;
-      if (pallets <= 2) { setVolumeIndex(2); setWeightIndex(2); }
-      else if (pallets <= 4) { setVolumeIndex(3); setWeightIndex(3); }
-      else if (pallets <= 6) { setVolumeIndex(4); setWeightIndex(4); }
-      else if (pallets <= 10) { setVolumeIndex(5); setWeightIndex(5); }
-      else if (pallets <= 17) { setVolumeIndex(6); setWeightIndex(6); }
-      else { setVolumeIndex(7); setWeightIndex(7); }
+      if (pallets <= 2) { setVolumeIndex(3); setWeightIndex(3); }
+      else if (pallets <= 4) { setVolumeIndex(4); setWeightIndex(4); }
+      else if (pallets <= 6) { setVolumeIndex(5); setWeightIndex(5); }
+      else if (pallets <= 10) { setVolumeIndex(6); setWeightIndex(6); }
+      else if (pallets <= 17) { setVolumeIndex(7); setWeightIndex(7); }
+      else { setVolumeIndex(8); setWeightIndex(8); }
     }
   }, [foodPalletCount, transportType, foodPackaging]);
 
@@ -791,12 +852,12 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
     if (transportType === "Другое" && otherPackaging === "pallets" && otherPalletCount) {
       const pallets = parseInt(otherPalletCount);
       if (isNaN(pallets) || pallets <= 0) return;
-      if (pallets <= 2) { setVolumeIndex(2); setWeightIndex(2); }
-      else if (pallets <= 4) { setVolumeIndex(3); setWeightIndex(3); }
-      else if (pallets <= 6) { setVolumeIndex(4); setWeightIndex(4); }
-      else if (pallets <= 10) { setVolumeIndex(5); setWeightIndex(5); }
-      else if (pallets <= 17) { setVolumeIndex(6); setWeightIndex(6); }
-      else { setVolumeIndex(7); setWeightIndex(7); }
+      if (pallets <= 2) { setVolumeIndex(3); setWeightIndex(3); }
+      else if (pallets <= 4) { setVolumeIndex(4); setWeightIndex(4); }
+      else if (pallets <= 6) { setVolumeIndex(5); setWeightIndex(5); }
+      else if (pallets <= 10) { setVolumeIndex(6); setWeightIndex(6); }
+      else if (pallets <= 17) { setVolumeIndex(7); setWeightIndex(7); }
+      else { setVolumeIndex(8); setWeightIndex(8); }
     }
   }, [otherPalletCount, transportType, otherPackaging]);
 
@@ -815,21 +876,75 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
 
   return (
     <div className="space-y-4">
-      <div className="bg-[#f0f3f5] rounded-lg p-3 border border-border shadow-sm">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
-              <Calculator className="w-5 h-5 text-primary" />
-            </div>
-            <h2 className="text-xl font-bold">Расчет стоимости перевозки</h2>
+      <div 
+        className="relative rounded-lg p-3 shadow-lg hover:shadow-xl transition-shadow"
+        style={{
+          backgroundColor: '#405b9a',
+          borderRadius: '60px',
+        }}
+      >
+        {/* Круглая маска для кнопки (ЛЕВЫЙ верхний угол) */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: 94,
+            height: 94,
+            top: -16,
+            left: -18,
+            backgroundColor: '#fafafa',
+          }}
+        />
+
+        {/* Правый прямоугольник с вогнутым углом */}
+        <div
+          className="absolute"
+          style={{
+            width: 47,
+            height: 47,
+            top: -16,
+            left: 29,
+            background: `radial-gradient(circle at bottom left, transparent 40px, #fafafa 40px)`,
+          }}
+        />
+
+        {/* Нижний прямоугольник с вогнутым углом */}
+        <div
+          className="absolute"
+          style={{
+            width: 47,
+            height: 47,
+            top: 31,
+            left: -18,
+            background: `radial-gradient(circle at top right, transparent 40px, #fafafa 40px)`,
+          }}
+        />
+
+        {/* Кнопка с иконкой калькулятора (ЛЕВЫЙ верхний угол) */}
+        <button
+          className="absolute rounded-full cursor-pointer hover:scale-110 transition-all"
+          style={{
+            width: 60,
+            height: 60,
+            top: 1,
+            left: -1,
+            backgroundColor: '#d1d5db',
+            zIndex: 50,
+          }}
+        >
+          <div className="flex items-center justify-center w-full h-full">
+            <Calculator className="w-9 h-9" style={{color: '#405b9a'}} />
           </div>
+        </button>
+
+        {/* Header */}
+        <div className="flex flex-col items-center mb-3 relative z-10" style={{marginTop: '20px'}}>
+          <h2 className="text-xl font-bold text-white text-center mb-3">Расчет стоимости перевозки</h2>
           <div className="flex items-center gap-2">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${calculatorStep === 1 ? 'bg-primary text-white' : 'bg-primary/20 text-primary'}`}>
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${calculatorStep === 1 ? 'bg-white text-primary' : 'bg-white/20 text-white'}`}>
               1
             </div>
-            <div className={`w-10 h-0.5 ${calculatorStep === 2 ? 'bg-primary' : 'bg-primary/20'}`}></div>
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${calculatorStep === 2 ? 'bg-primary text-white' : 'bg-primary/20 text-primary'}`}>
+            <div className={`w-10 h-0.5 ${calculatorStep === 2 ? 'bg-white' : 'bg-white/20'}`}></div>
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${calculatorStep === 2 ? 'bg-white text-primary' : 'bg-white/20 text-white'}`}>
               2
             </div>
           </div>
@@ -838,15 +953,15 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
         {/* Estimated Cost Display */}
         {/* ШАГ 1: Показываем заглушку с 0 рублей */}
         {calculatorStep === 1 && (
-          <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-lg p-3 mb-3">
+          <div className="bg-white/10 border border-white/20 rounded-lg p-3 mb-3 backdrop-blur-sm relative z-10">
             <div>
-              <p className="text-xs font-medium text-center mb-2" style={{color: '#405b9a'}}>
+              <p className="text-xs font-medium text-center mb-2 text-white/90">
                 Предварительная стоимость перевозки
               </p>
               
               <div className="flex items-center justify-center">
                 <div className="flex-1 text-center">
-                  <p className="text-3xl font-bold text-primary">0 ₽</p>
+                  <p className="text-3xl font-bold text-white">0 ₽</p>
                 </div>
               </div>
             </div>
@@ -855,11 +970,11 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
 
         {/* ШАГ 2: Показываем финальную стоимость только после нажатия кнопки */}
         {calculatorStep === 2 && showFinalPrice && estimatedCost > 0 && (
-          <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 rounded-lg p-3 mb-3 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="bg-white/15 border-2 border-white/30 rounded-lg p-3 mb-3 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500 backdrop-blur-sm relative z-10">
             <div>
               {/* Верхняя часть - скрывается на мобильных при открытии формы */}
               <div className={`${showContactForm ? 'hidden md:block' : 'block'}`}>
-                <p className="text-xs text-center mb-1 text-muted-foreground">
+                <p className="text-xs text-center mb-1 text-white/90">
                   ⚠️ Примерная стоимость вашей перевозки
                 </p>
                 
@@ -869,9 +984,9 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                   <div className="flex items-center gap-1.5 min-w-[70px]">
                     {routeDistance && routeDistance > 0 && (
                       <>
-                        <Truck className="w-3.5 h-3.5 text-primary" />
+                        <Truck className="w-3.5 h-3.5 text-white" />
                         <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-foreground leading-tight">
+                          <span className="text-xs font-semibold text-white leading-tight">
                             {routeDistance.toLocaleString()} км
                           </span>
                         </div>
@@ -881,7 +996,7 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                   
                   {/* Цена по центру */}
                   <div className="flex-1 text-center">
-                    <p className="text-2xl font-bold text-primary">{estimatedCost.toLocaleString()} ₽</p>
+                    <p className="text-2xl font-bold text-white">{estimatedCost.toLocaleString()} ₽</p>
                   </div>
                   
                   {/* Срок доставки справа */}
@@ -889,64 +1004,38 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                     {routeDuration && routeDuration > 0 && (
                       <>
                         <div className="flex flex-col text-right">
-                          <span className="text-xs font-semibold text-foreground leading-tight">
+                          <span className="text-xs font-semibold text-white leading-tight">
                             {routeDuration} {routeDuration === 1 ? 'день' : routeDuration < 5 ? 'дня' : 'дней'}
                           </span>
-                          <span className="text-[9px] text-muted-foreground">доставка</span>
+                          <span className="text-[9px] text-white/70">доставка</span>
                         </div>
                       </>
                     )}
                   </div>
                 </div>
 
-                {/* Кнопка скачать расчёт */}
-                <Button 
-                  variant="outline"
-                  className="w-full h-8 gap-2 mb-2 text-sm" 
-                  onClick={downloadCalculation}
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Скачать расчёт
-                </Button>
+                {/* Предупреждение */}
+                <p className="text-sm text-white/80 leading-relaxed mb-2">
+                  ⚠️ ВАЖНО: Это предварительный расчёт на основе указанных данных.<br />
+                  Отправьте эту форму, указав как вы хотите получить точный расчёт.
+                </p>
 
-                {/* Разделитель */}
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-primary/20"></div>
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-gradient-to-br from-primary/10 to-primary/5 px-2 text-muted-foreground">
-                      Получить точный расчёт
-                    </span>
-                  </div>
-                </div>
-
-                {/* Блок для получения точного фиксированного расчёта */}
-                <div className="text-center mb-3">
-                  <h3 className="text-base font-semibold mb-2" style={{color: '#083cb5'}}>
-                    🎯 Получить точный фиксированный расчёт от логиста
-                  </h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Данный расчёт является примерным и не может служить основанием для заключения договора. 
-                    Для получения точной стоимости с учётом всех деталей перевозки свяжитесь с нашим менеджером.
-                  </p>
-                </div>
               </div>
 
               {/* Нижняя часть - всегда видна */}
-              <div className="space-y-3">
+              <div className="space-y-3" style={{ marginTop: '35px' }}>
                 {!showContactForm ? (
                   <Button 
-                    className="w-full h-10" 
-                    style={{backgroundColor: '#083cb5'}}
+                    className="w-full h-10 text-white hover:bg-[#405b9a]" 
+                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
                     onClick={() => setShowContactForm(true)}
                   >
-                    Связаться с менеджером
+                    Получить точный расчёт
                   </Button>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-xs text-center text-muted-foreground">
-                      ⏱️ Менеджер свяжется с вами в течение 10 минут
+                    <p className="text-sm font-medium text-center text-white/90" style={{ marginBottom: '10px' }}>
+                      Как вы хотите получить расчёт?
                     </p>
 
                     {/* Выбор способа связи */}
@@ -972,7 +1061,7 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
 
                     {/* Поле ввода контакта */}
                     <div className="space-y-2">
-                      <Label htmlFor="userContact" className="text-sm">
+                      <Label htmlFor="userContact" className="text-sm text-white">
                         {contactMethod === "phone" ? "Ваш номер телефона" : "Ваш номер WhatsApp"}
                       </Label>
                       <Input
@@ -980,51 +1069,80 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                         type="tel"
                         placeholder="+7 (999) 999-99-99"
                         value={userContact}
-                        onChange={handlePhoneChange}
+                        onChange={(e) => {
+                          handlePhoneChange(e);
+                          if (userContactError) setUserContactError(false);
+                        }}
                         onFocus={(e) => {
                           // При фокусе, если поле пустое, ставим +7
                           if (!e.target.value) {
                             setUserContact('+7 ');
                           }
                         }}
-                        className="h-9"
+                        className={`h-9 ${userContactError ? 'border-orange-500 ring-2 ring-orange-500' : ''}`}
                         autoComplete="tel"
                       />
+                      {userContactError && (
+                        <p className="text-sm text-white font-medium flex items-center gap-1 mt-1">
+                          <span className="inline-block w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse"></span>
+                          Укажите номер телефона или WhatsApp
+                        </p>
+                      )}
                     </div>
 
-                    {/* Информация о менеджере - кликабельный блок для звонка */}
-                    <a 
-                      href={`tel:${managerPhone.replace(/\s/g, '')}`}
-                      className="block bg-white/70 rounded-lg p-3 text-xs border border-primary/20 hover:bg-white hover:border-primary/40 transition-all active:scale-98 cursor-pointer"
-                    >
-                      <p className="font-semibold mb-1">👤 Ваш персональный менеджер:</p>
-                      <p className="text-muted-foreground flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {managerName} • {managerPhone}
-                      </p>
-                      <p className="text-[10px] text-primary mt-1">Нажмите, чтобы позвонить</p>
-                    </a>
-
                     {/* Кнопки */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" style={{ marginBottom: '25px' }}>
                       <Button
-                        variant="outline"
-                        className="flex-1 h-9"
+                        className="h-9"
+                        style={{backgroundColor: '#CAD7EA', color: 'black', border: 'none', padding: '0 10px'}}
                         onClick={() => {
+                          setShowFinalPrice(false);
                           setShowContactForm(false);
                           setUserContact("");
                         }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'white';
+                          e.currentTarget.style.color = '#083cb5';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#CAD7EA';
+                          e.currentTarget.style.color = 'black';
+                        }}
                       >
-                        Отмена
+                        Назад
                       </Button>
-                      <Button
-                        className="flex-1 h-9"
-                        style={{backgroundColor: '#083cb5'}}
-                        disabled={!userContact}
+                      <button
+                        className="flex-1 h-[46px] rounded-md text-sm font-medium cursor-pointer transition-colors bg-primary text-white"
                         onClick={handleSubmitCalculation}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'white';
+                          e.currentTarget.style.color = '#083cb5';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '';
+                          e.currentTarget.style.color = 'white';
+                        }}
                       >
-                        Отправить
-                      </Button>
+                        Получить точный расчёт
+                      </button>
+                    </div>
+
+                    {/* Информация о менеджере - текстовая составляющая */}
+                    <div className="relative flex items-center justify-between">
+                      <a 
+                        href={`tel:${managerPhone.replace(/\s/g, '')}`}
+                        className="text-white text-sm hover:text-white/80 transition-colors"
+                      >
+                        👤 Ваш персональный менеджер: {managerName} • {managerPhone}
+                      </a>
+                      {/* Кнопка скачать расчёт - справа */}
+                      <button
+                        className="flex items-center gap-1 text-xs text-white hover:text-white/80 transition-colors"
+                        onClick={downloadCalculation}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Скачать расчёт
+                      </button>
                     </div>
                   </div>
                 )}
@@ -1038,9 +1156,9 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
           {calculatorStep === 1 && (
             <>
               {/* ШАГ 1: Основная информация */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-10">
                 <div className="space-y-1.5">
-                  <Label htmlFor="from">Откуда</Label>
+                  <Label htmlFor="from" className="text-white">Откуда</Label>
                   <div className="relative">
                     <div 
                       className={`rounded-lg transition-all ${
@@ -1050,7 +1168,7 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                       }`}
                     >
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground z-10" />
+                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-white/60 z-10" />
                         <Input
                           ref={fromInputRef}
                           id="from"
@@ -1101,7 +1219,7 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                               setShowFromSuggestions(false);
                               fromInputRef.current?.focus();
                             }}
-                            className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                            className="absolute right-3 top-3 text-white/60 hover:text-white transition-colors"
                             aria-label="Очистить"
                           >
                             <X className="w-4 h-4" />
@@ -1159,14 +1277,14 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                       )}
                   </div>
                   {fromFieldError && (
-                    <p className="text-sm text-orange-600 font-medium flex items-center gap-1 mt-1">
+                    <p className="text-sm text-white font-medium flex items-center gap-1 mt-1">
                       <span className="inline-block w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse"></span>
                       Выберите адрес из выпадающего списка
                     </p>
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="to">Куда</Label>
+                  <Label htmlFor="to" className="text-white">Куда</Label>
                   <div className="relative">
                     <div 
                       className={`rounded-lg transition-all ${
@@ -1176,7 +1294,7 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                       }`}
                     >
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground z-10" />
+                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-white/60 z-10" />
                         <Input
                           ref={toInputRef}
                           id="to"
@@ -1227,7 +1345,7 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                               setShowToSuggestions(false);
                               toInputRef.current?.focus();
                             }}
-                            className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                            className="absolute right-3 top-3 text-white/60 hover:text-white transition-colors"
                             aria-label="Очистить"
                           >
                             <X className="w-4 h-4" />
@@ -1285,7 +1403,7 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                       )}
                   </div>
                   {toFieldError && (
-                    <p className="text-sm text-orange-600 font-medium flex items-center gap-1 mt-1">
+                    <p className="text-sm text-white font-medium flex items-center gap-1 mt-1">
                       <span className="inline-block w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse"></span>
                       Выберите адрес из выпадающего списка
                     </p>
@@ -1293,8 +1411,8 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label className="text-sm font-bold text-[#083cb5]">Тип перевозки</Label>
+              <div className="space-y-2 relative z-0">
+                <Label className="text-sm font-bold text-white">Тип перевозки</Label>
                 <div 
                   className={`grid grid-cols-1 gap-1.5 rounded-lg p-2 -m-2 transition-all ${
                     transportTypeError 
@@ -1307,8 +1425,8 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                       key={type}
                       className={`flex items-center py-2.5 px-3 rounded-lg border-2 cursor-pointer transition-all ${
                         transportType === type
-                          ? 'border-primary bg-primary/5 shadow-sm'
-                          : 'border-border hover:border-primary/50 hover:bg-primary/5'
+                          ? 'border-white bg-white/20 shadow-sm'
+                          : 'border-white/30 hover:border-white/60 hover:bg-white/10'
                       }`}
                     >
                       <input
@@ -1321,28 +1439,30 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                           // Сбрасываем ошибку при выборе
                           if (transportTypeError) setTransportTypeError(false);
                         }}
-                        className="w-5 h-5 text-primary focus:ring-primary focus:ring-2"
+                        className="w-5 h-5 accent-white focus:ring-white focus:ring-2"
                       />
-                      <span className={`ml-3 text-base ${transportType === type ? 'font-semibold text-primary' : 'font-medium'}`}>
+                      <span className={`ml-3 text-base text-white ${transportType === type ? 'font-semibold' : 'font-medium'}`}>
                         {type}
                       </span>
                     </label>
                   ))}
                 </div>
                 {transportTypeError && (
-                  <p className="text-sm text-orange-600 font-medium flex items-center gap-1 mt-1">
-                    <span className="inline-block w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse"></span>
-                    Выберите тип перевозки
-                  </p>
+                    <p className="text-sm text-white font-medium flex items-center gap-1 mt-1">
+                      <span className="inline-block w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse"></span>
+                      Выберите тип перевозки
+                    </p>
                 )}
               </div>
               
-              <Button 
-                className="w-full" 
-                size="lg"
-                variant={(!fromCity || !toCity || !transportType) ? "outline" : "default"}
-                type="button"
-                onClick={(e) => {
+              <div className="flex justify-center">
+                <Button 
+                  className="w-full max-w-md" 
+                  size="lg"
+                  variant={(!fromCity || !toCity || !transportType) ? "outline" : "default"}
+                  type="button"
+                  style={(!fromCity || !toCity || !transportType) ? {backgroundColor: '#8599AE', borderColor: '#8599AE'} : {backgroundColor: '#FFFFFF', color: '#405b9a'}}
+                  onClick={(e) => {
                   e.preventDefault(); // Предотвращаем любое поведение по умолчанию
                   e.stopPropagation(); // Останавливаем всплытие события
                   
@@ -1355,6 +1475,8 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                   
                   if (!fromCity) {
                     missingFields.push("• Укажите город отправления (Откуда)");
+                    setFromFieldError(true);
+                    hasValidationErrors = true;
                   } else if (!routeData.fromCoordinates) {
                     missingFields.push("• Выберите город отправления из выпадающего списка подсказок");
                     setFromFieldError(true);
@@ -1363,6 +1485,8 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                   
                   if (!toCity) {
                     missingFields.push("• Укажите город назначения (Куда)");
+                    setToFieldError(true);
+                    hasValidationErrors = true;
                   } else if (!routeData.toCoordinates) {
                     missingFields.push("• Выберите город назначения из выпадающего списка подсказок");
                     setToFieldError(true);
@@ -1401,9 +1525,10 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                   setCalculatorStep(2);
                   setShowFinalPrice(false); // Сбрасываем флаг показа цены
                 }}
-              >
-                Продолжить расчёт
-              </Button>
+                >
+                  Продолжить расчёт
+                </Button>
+              </div>
             </>
           )}
 
@@ -1414,14 +1539,18 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                 {/* Показываем чекбоксы только если цена ещё не рассчитана */}
                 {!showFinalPrice && (
                   <div>
-                    <Label className="text-sm font-bold text-[#083cb5] mb-1.5 block">Что планируете перевозить? (опционально)</Label>
+                    <Label className="text-sm font-bold text-white mb-1.5 block">Что планируете перевозить? (опционально)</Label>
                     <div className="space-y-1.5 rounded-lg p-2 -m-2 transition-all">
                       {/* Коробки */}
-                      <div className="border-2 border-border rounded-lg py-2 px-2.5 hover:border-primary/50 hover:bg-primary/5 transition-all">
+                      <div className="border-2 border-white/30 rounded-lg py-2 px-2.5 hover:border-white/60 hover:bg-white/10 transition-all">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <label 
-                            htmlFor="boxes"
+                          <div
                             className="flex items-center space-x-2 cursor-pointer flex-shrink-0"
+                            onClick={() => {
+                              const newValue = !movingItems.boxes;
+                              setMovingItems({ ...movingItems, boxes: newValue });
+                              if (!newValue) setBoxesCount("");
+                            }}
                           >
                             <Checkbox 
                               id="boxes"
@@ -1430,13 +1559,13 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                                 setMovingItems({ ...movingItems, boxes: checked as boolean });
                                 if (!checked) setBoxesCount("");
                               }}
-                              className="h-4 w-4"
+                              className="h-4 w-4 border-white/50 data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:text-[#405b9a] pointer-events-none"
                             />
-                            <Package className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-medium">Коробки</span>
-                          </label>
+                            <Package className="w-4 h-4 text-white/60" />
+                            <span className="text-sm font-medium text-white">Коробки</span>
+                          </div>
                           {movingItems.boxes && (
-                            <div className="flex-1 min-w-[200px]">
+                            <div className="flex-1 min-w-[200px]" onClick={(e) => e.stopPropagation()}>
                               <Input
                                 type="number"
                                 placeholder="Примерное количество коробок"
@@ -1451,11 +1580,15 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                       </div>
 
                       {/* Мебель */}
-                      <div className="border-2 border-border rounded-lg py-2 px-2.5 hover:border-primary/50 hover:bg-primary/5 transition-all">
+                      <div className="border-2 border-white/30 rounded-lg py-2 px-2.5 hover:border-white/60 hover:bg-white/10 transition-all">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <label 
-                            htmlFor="furniture"
+                          <div
                             className="flex items-center space-x-2 cursor-pointer flex-shrink-0"
+                            onClick={() => {
+                              const newValue = !movingItems.furniture;
+                              setMovingItems({ ...movingItems, furniture: newValue });
+                              if (!newValue) setFurnitureDetails("");
+                            }}
                           >
                             <Checkbox 
                               id="furniture"
@@ -1464,13 +1597,13 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                                 setMovingItems({ ...movingItems, furniture: checked as boolean });
                                 if (!checked) setFurnitureDetails("");
                               }}
-                              className="h-4 w-4"
+                              className="h-4 w-4 border-white/50 data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:text-[#405b9a] pointer-events-none"
                             />
-                            <Home className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-medium">Мебель</span>
-                          </label>
+                            <Home className="w-4 h-4 text-white/60" />
+                            <span className="text-sm font-medium text-white">Мебель</span>
+                          </div>
                           {movingItems.furniture && (
-                            <div className="flex-1 min-w-[200px]">
+                            <div className="flex-1 min-w-[200px]" onClick={(e) => e.stopPropagation()}>
                               <Input
                                 type="text"
                                 placeholder="Укажите только крупногабаритное: диван, шкаф, кровать..."
@@ -1484,11 +1617,15 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                       </div>
 
                       {/* Бытовая техника */}
-                      <div className="border-2 border-border rounded-lg py-2 px-2.5 hover:border-primary/50 hover:bg-primary/5 transition-all">
+                      <div className="border-2 border-white/30 rounded-lg py-2 px-2.5 hover:border-white/60 hover:bg-white/10 transition-all">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <label 
-                            htmlFor="appliances"
+                          <div
                             className="flex items-center space-x-2 cursor-pointer flex-shrink-0"
+                            onClick={() => {
+                              const newValue = !movingItems.appliances;
+                              setMovingItems({ ...movingItems, appliances: newValue });
+                              if (!newValue) setAppliancesDetails("");
+                            }}
                           >
                             <Checkbox 
                               id="appliances"
@@ -1497,13 +1634,13 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                                 setMovingItems({ ...movingItems, appliances: checked as boolean });
                                 if (!checked) setAppliancesDetails("");
                               }}
-                              className="h-4 w-4"
+                              className="h-4 w-4 border-white/50 data-[state=checked]:bg-white data-[state=checked]:border-white data-[state=checked]:text-[#405b9a] pointer-events-none"
                             />
-                            <ShoppingCart className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-medium">Бытовая техника</span>
-                          </label>
+                            <ShoppingCart className="w-4 h-4 text-white/60" />
+                            <span className="text-sm font-medium text-white">Бытовая техника</span>
+                          </div>
                           {movingItems.appliances && (
-                            <div className="flex-1 min-w-[200px]">
+                            <div className="flex-1 min-w-[200px]" onClick={(e) => e.stopPropagation()}>
                               <Input
                                 type="text"
                                 placeholder="Укажите только крупногабаритное: холодильник, стиральная машина..."
@@ -1522,13 +1659,34 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                 {/* Показываем только если цена ещё не рассчитана */}
                 {!showFinalPrice && (
                   <>
+                    <div className="border-2 border-white/40 rounded-lg p-4 bg-white/5 hover:bg-white/10 transition-all">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Wrench className="w-5 h-5 text-white" />
+                            <h3 className="text-sm font-bold text-white">Затрудняетесь с объёмом перевозки?</h3>
+                          </div>
+                          <p className="text-xs text-white/80">
+                            Воспользуйтесь нашим конструктором — выберите предметы, и мы автоматически рассчитаем объём и предложим подходящую машину.
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => setIsConstructorOpen(true)}
+                          className="bg-white hover:bg-white/90 text-[#083cb5] font-semibold whitespace-nowrap"
+                          size="sm"
+                        >
+                          <Package className="w-4 h-4 mr-2" />
+                          Открыть конструктор
+                        </Button>
+                      </div>
+                    </div>
+
                     <div className="space-y-2 pt-2">
-                      <Label className="text-sm font-bold text-[#083cb5]">Предположительный объём: {volumeSteps[volumeIndex]} м³</Label>
-                      <div 
+                      <Label className="text-sm font-bold text-white">Предположительный объём: {volumeSteps[volumeIndex]} м³</Label>
+                      <div
                         className={`rounded-lg p-2 -m-2 transition-all ${
-                          volumeError 
-                            ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/20' 
-                            : ''
+                          volumeError ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/20' : ''
                         }`}
                       >
                         <Slider
@@ -1542,95 +1700,95 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                           step={1}
                           className="w-full"
                         />
-                        <div className="relative text-[10px] text-muted-foreground h-4 mt-2">
-                          <span className="absolute left-0 -translate-x-0 whitespace-nowrap">0 м³</span>
-                          <span className="absolute left-[12.20%] -translate-x-1/2 whitespace-nowrap">10</span>
-                          <span className="absolute left-[24.39%] -translate-x-1/2 whitespace-nowrap">20</span>
-                          <span className="absolute left-[36.59%] -translate-x-1/2 whitespace-nowrap">30</span>
-                          <span className="absolute left-[48.78%] -translate-x-1/2 whitespace-nowrap">40</span>
-                          <span className="absolute left-[60.98%] -translate-x-1/2 whitespace-nowrap">50</span>
-                          <span className="absolute left-[73.17%] -translate-x-1/2 whitespace-nowrap">60</span>
-                          <span className="absolute left-[85.37%] -translate-x-1/2 whitespace-nowrap">70</span>
-                          <span className="absolute left-[97.56%] -translate-x-1/2 whitespace-nowrap">80</span>
-                          <span className="absolute left-[100%] -translate-x-full whitespace-nowrap">82 м³</span>
-                        </div>
                       </div>
                       {volumeError && (
-                        <p className="text-sm text-orange-600 font-medium flex items-center gap-1 mt-1">
+                        <p className="text-sm text-white font-medium flex items-center gap-1 mt-1">
                           <span className="inline-block w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse"></span>
                           Укажите примерный объем груза
                         </p>
                       )}
                     </div>
 
-                    {/* ВРЕМЕННО ОТКЛЮЧЕНО - Информация о машине - компактный вариант */}
-                    {/* <div className="bg-primary/5 border border-primary/20 rounded-lg p-2">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <Truck className="w-4 h-4 text-primary flex-shrink-0" />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-sm text-primary">
-                            {getTruckInfoByVolume(volumeSteps[volumeIndex]).name}
-                          </h4>
-                          <p className="text-xs text-muted-foreground">
-                            {getTruckInfoByVolume(volumeSteps[volumeIndex]).description}
-                          </p>
+                    {constructorItems && constructorItems.length > 0 && (
+                      <div className="rounded-lg border border-white/20 bg-white/10 p-3 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-white">
+                              Объём по конструктору: {volumeSteps[volumeIndex]} м³
+                            </p>
+                            {constructorRecommendedTruck && (
+                              <p className="text-xs text-white/80">
+                                Рекомендованная машина: {constructorRecommendedTruck}
+                              </p>
+                            )}
+                            {typeof constructorFloorUtilization === 'number' && (
+                              <p className="text-xs text-white/70">
+                                Заполнение пола: {Math.round(constructorFloorUtilization * 100)}%
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-8 text-xs text-white border-white/40 hover:text-[#083cb5] hover:border-white bg-transparent"
+                            onClick={() => setIsConstructorOpen(true)}
+                          >
+                            Изменить в конструкторе
+                          </Button>
                         </div>
+                        <p className="text-xs text-white/60">
+                          Предметов выбрано: {constructorItems.length}
+                        </p>
                       </div>
-                      <div className="grid grid-cols-3 gap-1.5 text-xs">
-                        <div className="bg-white/70 rounded px-2 py-1 text-center">
-                          <div className="font-medium text-muted-foreground">Вес</div>
-                          <div className="text-primary font-semibold">
-                            {getTruckInfoByVolume(volumeSteps[volumeIndex]).capacity}
-                          </div>
-                        </div>
-                        <div className="bg-white/70 rounded px-2 py-1 text-center">
-                          <div className="font-medium text-muted-foreground">Объём</div>
-                          <div className="text-primary font-semibold">
-                            {getTruckInfoByVolume(volumeSteps[volumeIndex]).volumeCapacity}
-                          </div>
-                        </div>
-                        <div className="bg-white/70 rounded px-2 py-1 text-center">
-                          <div className="font-medium text-muted-foreground">Размеры</div>
-                          <div className="text-primary font-semibold text-[10px]">
-                            {getTruckInfoByVolume(volumeSteps[volumeIndex]).dimensions}
-                          </div>
-                        </div>
-                      </div>
-                    </div> */}
+                    )}
+
+                    <div className="mt-3" data-truck-visualization>
+                      <TruckVisualization
+                        currentVolume={volumeSteps[volumeIndex]}
+                        maxVolume={parseInt(getTruckInfoByVolume(volumeSteps[volumeIndex]).volumeCapacity.match(/\d+/)?.[0] || '82')}
+                        truckName={getTruckInfoByVolume(volumeSteps[volumeIndex]).name}
+                        truckCapacity={getTruckInfoByVolume(volumeSteps[volumeIndex]).capacity}
+                        truckDescription={getTruckInfoByVolume(volumeSteps[volumeIndex]).description}
+                        floorUtilization={constructorFloorUtilization}
+                      />
+                    </div>
                   </>
                 )}
               </div>
 
               {!showFinalPrice ? (
-                <div className="flex gap-2 pt-3">
+                <div className="flex gap-2 pt-3" style={{ paddingLeft: '15px', paddingRight: '15px' }}>
                   <Button 
                     variant="outline"
-                    className="w-1/3 h-10" 
+                    className="w-1/3 h-9" 
                     onClick={() => {
                       setCalculatorStep(1);
                       setShowFinalPrice(false);
+                      setConstructorItems(undefined);
+                      setConstructorFloorUtilization(undefined);
+                      setConstructorRecommendedTruck(undefined);
                     }}
                   >
                     Назад
                   </Button>
                   <Button 
-                    className="w-2/3 h-10" 
-                    variant={(volumeIndex === 0 && !cannotSpecifyVolume) ? "outline" : "default"}
+                    className="w-2/3 h-9" 
+                    variant={volumeIndex === 0 ? "outline" : "default"}
                     type="button"
+                    style={volumeIndex === 0 ? {backgroundColor: '#8599AE', borderColor: '#8599AE'} : {backgroundColor: '#FFFFFF', color: '#405b9a'}}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       
-                      // Проверяем объем груза (если пользователь не отметил "Не могу указать объем")
-                      if (volumeIndex === 0 && !cannotSpecifyVolume) {
+                      // Проверяем объем груза
+                      if (volumeIndex === 0) {
                         setVolumeError(true);
                         return;
                       }
 
                       // Выполняем расчет стоимости
                       const weight = weightSteps[weightIndex];
-                      // Используем 0 для объема, если активен чекбокс "Не могу указать объем"
-                      const volume = cannotSpecifyVolume ? 0 : volumeSteps[volumeIndex];
+                      const volume = volumeSteps[volumeIndex];
                       
                       const result = calculateShippingCost(
                         fromCity,
@@ -1638,14 +1796,17 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                         routeDistance!,
                         weight,
                         volume,
-                        transportType  // 🆕 Передаем категорию груза
+                        transportType
                       );
                       
                       if (result && result.cost) {
+                        // Применяем минимум 7500 рублей для всех типов перевозок
+                        const finalCost = Math.max(result.cost, 7500);
+                        
                         // Сохраняем позицию скролла перед изменением состояния
                         scrollPositionRef.current = window.pageYOffset;
                         
-                        setEstimatedCost(result.cost);
+                        setEstimatedCost(finalCost);
                         setShowFinalPrice(true);
                       }
                     }}
@@ -1655,25 +1816,24 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                 </div>
               ) : (
                 !showContactForm && (
-                  <div className="flex gap-2 pt-3">
+                  <div className="flex gap-2 pt-3" style={{ paddingLeft: '15px', paddingRight: '15px' }}>
                     <Button 
-                      variant="outline"
-                      className="w-1/2 h-10" 
+                      className="w-1/2 h-8 text-white hover:bg-[#405b9a]" 
+                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
                       onClick={() => {
                         setShowFinalPrice(false);
                         setShowContactForm(false);
                         setUserContact("");
+                        setConstructorItems(undefined);
+                        setConstructorFloorUtilization(undefined);
+                        setConstructorRecommendedTruck(undefined);
                       }}
                     >
                       Изменить параметры
                     </Button>
                     <Button 
-                      variant="outline"
-                      className="w-1/2 h-10"
-                      style={{
-                        borderColor: '#405b9a',
-                        color: '#405b9a'
-                      }}
+                      className="w-1/2 h-8 text-white hover:bg-[#405b9a]"
+                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
                       onClick={() => {
                         setCalculatorStep(1);
                         setShowFinalPrice(false);
@@ -1689,6 +1849,9 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                         setBoxesCount("");
                         setFurnitureDetails("");
                         setAppliancesDetails("");
+                        setConstructorItems(undefined);
+                        setConstructorFloorUtilization(undefined);
+                        setConstructorRecommendedTruck(undefined);
                       }}
                     >
                       Новый расчёт
@@ -1708,7 +1871,7 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                   <>
                     {/* Характер груза */}
                     <div className="space-y-2">
-                      <Label htmlFor="cargoNature" className="text-sm font-bold text-[#083cb5]">Характер груза</Label>
+                      <Label htmlFor="cargoNature" className="text-sm font-bold text-white">Характер груза</Label>
                       <div 
                         className={`rounded-lg transition-all ${
                           cargoNatureError 
@@ -1729,7 +1892,7 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                         />
                       </div>
                       {cargoNatureError && (
-                        <p className="text-sm text-orange-600 font-medium flex items-center gap-1 mt-1">
+                        <p className="text-sm text-white font-medium flex items-center gap-1 mt-1">
                           <span className="inline-block w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse"></span>
                           Укажите характер груза
                         </p>
@@ -1738,7 +1901,7 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
 
                     {/* Как упакован груз */}
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-[#083cb5]">Как упакован груз?</Label>
+                      <Label className="text-sm font-bold text-white">Как упакован груз?</Label>
                       <div 
                         className={`grid grid-cols-1 gap-1.5 rounded-lg p-2 -m-2 transition-all ${
                           cargoPackagingError 
@@ -1750,8 +1913,8 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                         <div
                           className={`flex items-center gap-2 flex-wrap py-2 px-2.5 rounded-lg border-2 transition-all ${
                             cargoPackaging === 'pallets'
-                              ? 'border-primary bg-primary/5 shadow-sm'
-                              : 'border-border hover:border-primary/50 hover:bg-primary/5'
+                              ? 'border-white bg-white/10 shadow-sm'
+                              : 'border-white/30 hover:border-white/60 hover:bg-white/10'
                           }`}
                         >
                           <label className="flex items-center cursor-pointer flex-shrink-0">
@@ -1764,9 +1927,9 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                                 setCargoPackaging(e.target.value);
                                 if (cargoPackagingError) setCargoPackagingError(false);
                               }}
-                              className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                              className="w-4 h-4 text-white focus:ring-white focus:ring-2"
                             />
-                            <span className={`ml-3 text-sm ${cargoPackaging === 'pallets' ? 'font-semibold text-primary' : 'font-medium'}`}>
+                            <span className={`ml-3 text-sm ${cargoPackaging === 'pallets' ? 'font-semibold text-white' : 'font-medium text-white'}`}>
                               На палетах
                             </span>
                           </label>
@@ -1806,8 +1969,8 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                             key={option.value}
                             className={`flex items-center py-2 px-2.5 rounded-lg border-2 cursor-pointer transition-all ${
                               cargoPackaging === option.value
-                                ? 'border-primary bg-primary/5 shadow-sm'
-                                : 'border-border hover:border-primary/50 hover:bg-primary/5'
+                                ? 'border-white bg-white/10 shadow-sm'
+                                : 'border-white/30 hover:border-white/60 hover:bg-white/10'
                             }`}
                           >
                             <input
@@ -1819,1094 +1982,44 @@ ${transportType === "Другое" ? `📦 ДЕТАЛИ ГРУЗА:\n   Упак
                                 setCargoPackaging(e.target.value);
                                 if (cargoPackagingError) setCargoPackagingError(false);
                               }}
-                              className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                              className="w-4 h-4 text-white focus:ring-white focus:ring-2"
                             />
-                            <span className={`ml-3 text-sm ${cargoPackaging === option.value ? 'font-semibold text-primary' : 'font-medium'}`}>
+                            <span className={`ml-3 text-sm ${cargoPackaging === option.value ? 'font-semibold text-white' : 'font-medium text-white'}`}>
                               {option.label}
                             </span>
                           </label>
                         ))}
                       </div>
                       {cargoPackagingError && (
-                        <p className="text-sm text-orange-600 font-medium flex items-center gap-1 mt-1">
-                          <span className="inline-block w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse"></span>
+                        <p className="text-sm text-white font-medium flex items-center gap-1 mt-1">
+                          <span className="inline-block w-1.5 х-1.5 bg-orange-600 rounded-full animate-pulse"></span>
                           Выберите тип упаковки груза
                         </p>
                       )}
                     </div>
 
                     {/* ВРЕМЕННО ОТКЛЮЧЕНО - Информация о машине для палет */}
-                    {/* {cargoPackaging === "pallets" && (
-                      <>
-                        {palletCount && parseInt(palletCount) > 0 && (
-                          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Truck className="w-5 h-5 text-primary flex-shrink-0" />
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-sm text-primary">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).name}
-                                </h4>
-                                <p className="text-xs text-muted-foreground">
-                                  Для {palletCount} {parseInt(palletCount) === 1 ? 'палеты' : parseInt(palletCount) < 5 ? 'палет' : 'палет'} • {volumeSteps[volumeIndex]} м³
-                                </p>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-1.5 text-xs">
-                              <div className="bg-white/70 rounded px-2 py-1 text-center">
-                                <div className="font-medium text-muted-foreground">Вес</div>
-                                <div className="text-primary font-semibold">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).capacity}
-                                </div>
-                              </div>
-                              <div className="bg-white/70 rounded px-2 py-1 text-center">
-                                <div className="font-medium text-muted-foreground">Объём</div>
-                                <div className="text-primary font-semibold">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).volumeCapacity}
-                                </div>
-                              </div>
-                              <div className="bg-white/70 rounded px-2 py-1 text-center">
-                                <div className="font-medium text-muted-foreground">Размеры</div>
-                                <div className="text-primary font-semibold text-[10px]">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).dimensions}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )} */}
-
-                    {/* Вес и объем - показываем для всех кроме "На палетах" */}
-                    {cargoPackaging && cargoPackaging !== "pallets" && (
-                      <>
-                        {/* Вес груза */}
-                        <div className="space-y-2 pt-2">
-                          <Label className="text-sm font-bold text-[#083cb5]">
-                            Вес груза: {weightSteps[weightIndex] >= 1000 
-                              ? `${(weightSteps[weightIndex] / 1000).toFixed(1)} т` 
-                              : `${weightSteps[weightIndex]} кг`}
-                          </Label>
-                          <Slider
-                            value={[weightIndex]}
-                            onValueChange={(value) => setWeightIndex(value[0])}
-                            min={0}
-                            max={weightSteps.length - 1}
-                            step={1}
-                            className="w-full"
-                          />
-                          <div className="relative text-[10px] text-muted-foreground h-4">
-                            <span className="absolute left-0 -translate-x-0 whitespace-nowrap">200 кг</span>
-                            <span className="absolute left-[9.09%] -translate-x-1/2 whitespace-nowrap">500</span>
-                            <span className="absolute left-[13.64%] -translate-x-1/2 whitespace-nowrap">1т</span>
-                            <span className="absolute left-[36.36%] -translate-x-1/2 whitespace-nowrap">5т</span>
-                            <span className="absolute left-[59.09%] -translate-x-1/2 whitespace-nowrap">10т</span>
-                            <span className="absolute left-[81.82%] -translate-x-1/2 whitespace-nowrap">15т</span>
-                            <span className="absolute left-[100%] -translate-x-full whitespace-nowrap">20т</span>
-                          </div>
-                        </div>
-
-                        {/* Объем груза */}
-                        <div className="space-y-2 pt-2">
-                          {/* Заголовок и чекбокс в одной строке */}
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-bold text-[#083cb5]">Объём груза: {volumeSteps[volumeIndex]} м³</Label>
-                            
-                            {/* Чекбокс "Не могу указать объем" */}
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id="cannotSpecifyVolume"
-                                checked={cannotSpecifyVolume}
-                                onCheckedChange={(checked) => {
-                                  setCannotSpecifyVolume(checked as boolean);
-                                  if (checked) {
-                                    setVolumeIndex(0); // Сбрасываем ползунок в 0 при включении
-                                  }
-                                }}
-                                className="h-4 w-4"
-                              />
-                              <label
-                                htmlFor="cannotSpecifyVolume"
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                              >
-                                Не могу указать объем
-                              </label>
-                            </div>
-                          </div>
-                          
-                          <div className={`transition-opacity duration-200 ${cannotSpecifyVolume ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
-                            <Slider
-                              value={[volumeIndex]}
-                              onValueChange={(value) => setVolumeIndex(value[0])}
-                              min={0}
-                              max={volumeSteps.length - 1}
-                              step={1}
-                              className="w-full"
-                              disabled={cannotSpecifyVolume}
-                            />
-                          </div>
-                          <div className={`relative text-[10px] text-muted-foreground h-4 transition-opacity duration-200 ${cannotSpecifyVolume ? 'opacity-40' : 'opacity-100'}`}>
-                            <span className="absolute left-0 -translate-x-0 whitespace-nowrap">1 м³</span>
-                            <span className="absolute left-[11.11%] -translate-x-1/2 whitespace-nowrap">10</span>
-                            <span className="absolute left-[23.46%] -translate-x-1/2 whitespace-nowrap">20</span>
-                            <span className="absolute left-[35.80%] -translate-x-1/2 whitespace-nowrap">30</span>
-                            <span className="absolute left-[48.15%] -translate-x-1/2 whitespace-nowrap">40</span>
-                            <span className="absolute left-[60.49%] -translate-x-1/2 whitespace-nowrap">50</span>
-                            <span className="absolute left-[72.84%] -translate-x-1/2 whitespace-nowrap">60</span>
-                            <span className="absolute left-[85.19%] -translate-x-1/2 whitespace-nowrap">70</span>
-                            <span className="absolute left-[97.53%] -translate-x-1/2 whitespace-nowrap">80</span>
-                            <span className="absolute left-[100%] -translate-x-full whitespace-nowrap">82 м³</span>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* ВРЕМЕННО ОТКЛЮЧЕНО - Информация о машине - показываем если выбран тип упаковки кроме палет */}
-                    {/* {cargoPackaging && cargoPackaging !== "pallets" && (
-                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Truck className="w-5 h-5 text-primary flex-shrink-0" />
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-xs text-primary">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).name}
-                            </h4>
-                            <p className="text-[10px] text-muted-foreground">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).description}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-1 text-[10px]">
-                          <div className="bg-white/70 rounded px-1.5 py-0.5 text-center">
-                            <div className="font-medium text-muted-foreground">Вес</div>
-                            <div className="text-primary font-semibold">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).capacity}
-                            </div>
-                          </div>
-                          <div className="bg-white/70 rounded px-2 py-1 text-center">
-                            <div className="font-medium text-muted-foreground">Объём</div>
-                            <div className="text-primary font-semibold">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).volumeCapacity}
-                            </div>
-                          </div>
-                          <div className="bg-white/70 rounded px-2 py-1 text-center">
-                            <div className="font-medium text-muted-foreground">Размеры</div>
-                            <div className="text-primary font-semibold text-[10px]">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).dimensions}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )} */}
+                    {/* ... */}
                   </>
                 )}
               </div>
-
-              {!showFinalPrice ? (
-                <div className="flex gap-2 pt-3">
-                  <Button 
-                    variant="outline"
-                    className="w-1/3 h-10" 
-                    onClick={() => {
-                      setCalculatorStep(1);
-                      setShowFinalPrice(false);
-                    }}
-                  >
-                    Назад
-                  </Button>
-                  <Button 
-                    className="w-2/3 h-10"
-                    variant={(!cargoPackaging || !cargoNature || (cargoPackaging === "pallets" && !palletCount)) ? "outline" : "default"}
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      
-                      // Проверяем заполненность полей
-                      let hasErrors = false;
-                      
-                      if (!cargoPackaging) {
-                        setCargoPackagingError(true);
-                        hasErrors = true;
-                      }
-                      if (!cargoNature) {
-                        setCargoNatureError(true);
-                        hasErrors = true;
-                      }
-                      if (cargoPackaging === "pallets" && !palletCount) {
-                        setPalletCountError(true);
-                        hasErrors = true;
-                      }
-                      
-                      if (hasErrors) {
-                        return;
-                      }
-
-                      // Выполняем расчет стоимости
-                      const weight = weightSteps[weightIndex];
-                      // Используем 0 для объема, если активен чекбокс "Не могу указать объем"
-                      const volume = cannotSpecifyVolume ? 0 : volumeSteps[volumeIndex];
-                      
-                      const result = calculateShippingCost(
-                        fromCity,
-                        toCity,
-                        routeDistance!,
-                        weight,
-                        volume,
-                        transportType  // 🆕 Передаем категорию груза
-                      );
-                      
-                      if (result && result.cost) {
-                        // Сохраняем позицию скролла перед изменением состояния
-                        scrollPositionRef.current = window.pageYOffset;
-                        
-                        setEstimatedCost(result.cost);
-                        setShowFinalPrice(true);
-                      }
-                    }}
-                  >
-                    Получить расчёт
-                  </Button>
-                </div>
-              ) : (
-                !showContactForm && (
-                  <div className="flex gap-2 pt-3">
-                    <Button 
-                      variant="outline"
-                      className="w-1/2 h-10" 
-                      onClick={() => {
-                        setShowFinalPrice(false);
-                        setShowContactForm(false);
-                        setUserContact("");
-                      }}
-                    >
-                      Изменить параметры
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      className="w-1/2 h-10"
-                      style={{
-                        borderColor: '#405b9a',
-                        color: '#405b9a'
-                      }}
-                      onClick={() => {
-                        setCalculatorStep(1);
-                        setShowFinalPrice(false);
-                        setShowContactForm(false);
-                        setUserContact("");
-                        setTransportType("");
-                        setCargoPackaging("");
-                        setPalletCount("");
-                        setCargoNature("");
-                        setWeightIndex(0);
-                        setVolumeIndex(0);
-                      }}
-                    >
-                      Новый расчёт
-                    </Button>
-                  </div>
-                )
-              )}
             </>
           )}
 
-          {calculatorStep === 2 && transportType === "Продукты питания" && (
-            <>
-              {/* ШАГ 2: Продукты питания */}
-              <div className="space-y-2">
-                {/* Показываем форму только если цена ещё не рассчитана */}
-                {!showFinalPrice && (
-                  <>
-                    {/* Как упакован груз */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-[#083cb5]">Как упакован груз?</Label>
-                      <div 
-                        className={`grid grid-cols-1 gap-1.5 rounded-lg p-2 -m-2 transition-all ${
-                          foodPackagingError 
-                            ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/20' 
-                            : ''
-                        }`}
-                      >
-                        {/* На палетах - с inline полем */}
-                        <div
-                          className={`flex items-center gap-2 flex-wrap py-2 px-2.5 rounded-lg border-2 transition-all ${
-                            foodPackaging === 'pallets'
-                              ? 'border-primary bg-primary/5 shadow-sm'
-                              : 'border-border hover:border-primary/50 hover:bg-primary/5'
-                          }`}
-                        >
-                          <label className="flex items-center cursor-pointer flex-shrink-0">
-                            <input
-                              type="radio"
-                              name="food-packaging"
-                              value="pallets"
-                              checked={foodPackaging === 'pallets'}
-                              onChange={(e) => {
-                                setFoodPackaging(e.target.value);
-                                if (foodPackagingError) setFoodPackagingError(false);
-                              }}
-                              className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
-                            />
-                            <span className={`ml-3 text-sm ${foodPackaging === 'pallets' ? 'font-semibold text-primary' : 'font-medium'}`}>
-                              На палетах
-                            </span>
-                          </label>
-                          {foodPackaging === 'pallets' && (
-                            <div className="flex-1 min-w-[200px]">
-                              <div 
-                                className={`rounded-lg transition-all ${
-                                  foodPalletCountError 
-                                    ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/20' 
-                                    : ''
-                                }`}
-                              >
-                                <Input
-                                  id="foodPalletCount"
-                                  type="number"
-                                  placeholder="Укажите количество палет"
-                                  value={foodPalletCount}
-                                  onChange={(e) => {
-                                    setFoodPalletCount(e.target.value);
-                                    if (foodPalletCountError) setFoodPalletCountError(false);
-                                  }}
-                                  className="h-8 text-sm"
-                                  min="1"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Остальные варианты */}
-                        {[
-                          { value: 'boxes', label: 'В коробках' },
-                          { value: 'individual', label: 'Индивидуальная упаковка' },
-                          { value: 'bulk', label: 'Навалом (без упаковки)' },
-                          { value: 'loose', label: 'Россыпью' }
-                        ].map((option) => (
-                          <label
-                            key={option.value}
-                            className={`flex items-center py-2 px-2.5 rounded-lg border-2 cursor-pointer transition-all ${
-                              foodPackaging === option.value
-                                ? 'border-primary bg-primary/5 shadow-sm'
-                                : 'border-border hover:border-primary/50 hover:bg-primary/5'
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="food-packaging"
-                              value={option.value}
-                              checked={foodPackaging === option.value}
-                              onChange={(e) => {
-                                setFoodPackaging(e.target.value);
-                                if (foodPackagingError) setFoodPackagingError(false);
-                              }}
-                              className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
-                            />
-                            <span className={`ml-3 text-sm ${foodPackaging === option.value ? 'font-semibold text-primary' : 'font-medium'}`}>
-                              {option.label}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                      {foodPackagingError && (
-                        <p className="text-sm text-orange-600 font-medium flex items-center gap-1 mt-1">
-                          <span className="inline-block w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse"></span>
-                          Выберите тип упаковки груза
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Информация о машине для палет */}
-                    {/* ВРЕМЕННО ОТКЛЮЧЕНО - Информация о машине для палет (продукты) */}
-                    {/* {foodPackaging === "pallets" && (
-                      <>
-                        {foodPalletCount && parseInt(foodPalletCount) > 0 && (
-                          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Truck className="w-5 h-5 text-primary flex-shrink-0" />
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-sm text-primary">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).name}
-                                </h4>
-                                <p className="text-xs text-muted-foreground">
-                                  Для {foodPalletCount} {parseInt(foodPalletCount) === 1 ? 'палеты' : parseInt(foodPalletCount) < 5 ? 'палет' : 'палет'} • {volumeSteps[volumeIndex]} м³
-                                </p>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-1.5 text-xs">
-                              <div className="bg-white/70 rounded px-2 py-1 text-center">
-                                <div className="font-medium text-muted-foreground">Вес</div>
-                                <div className="text-primary font-semibold">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).capacity}
-                                </div>
-                              </div>
-                              <div className="bg-white/70 rounded px-2 py-1 text-center">
-                                <div className="font-medium text-muted-foreground">Объём</div>
-                                <div className="text-primary font-semibold">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).volumeCapacity}
-                                </div>
-                              </div>
-                              <div className="bg-white/70 rounded px-2 py-1 text-center">
-                                <div className="font-medium text-muted-foreground">Размеры</div>
-                                <div className="text-primary font-semibold text-[10px]">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).dimensions}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )} */}
-
-                    {/* Вес и объем - показываем для всех кроме "На палетах" */}
-                    {foodPackaging && foodPackaging !== "pallets" && (
-                      <>
-                        {/* Вес груза */}
-                        <div className="space-y-2 pt-2">
-                          <Label className="text-sm font-bold text-[#083cb5]">
-                            Вес груза: {weightSteps[weightIndex] >= 1000 
-                              ? `${(weightSteps[weightIndex] / 1000).toFixed(1)} т` 
-                              : `${weightSteps[weightIndex]} кг`}
-                          </Label>
-                          <Slider
-                            value={[weightIndex]}
-                            onValueChange={(value) => setWeightIndex(value[0])}
-                            min={0}
-                            max={weightSteps.length - 1}
-                            step={1}
-                            className="w-full"
-                          />
-                          <div className="relative text-[10px] text-muted-foreground h-4">
-                            <span className="absolute left-0 -translate-x-0 whitespace-nowrap">200 кг</span>
-                            <span className="absolute left-[9.09%] -translate-x-1/2 whitespace-nowrap">500</span>
-                            <span className="absolute left-[13.64%] -translate-x-1/2 whitespace-nowrap">1т</span>
-                            <span className="absolute left-[36.36%] -translate-x-1/2 whitespace-nowrap">5т</span>
-                            <span className="absolute left-[59.09%] -translate-x-1/2 whitespace-nowrap">10т</span>
-                            <span className="absolute left-[81.82%] -translate-x-1/2 whitespace-nowrap">15т</span>
-                            <span className="absolute left-[100%] -translate-x-full whitespace-nowrap">20т</span>
-                          </div>
-                        </div>
-
-                        {/* Объем груза */}
-                        <div className="space-y-2 pt-2">
-                          {/* Заголовок и чекбокс в одной строке */}
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-bold text-[#083cb5]">Объём груза: {volumeSteps[volumeIndex]} м³</Label>
-                            
-                            {/* Чекбокс "Не могу указать объем" */}
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id="cannotSpecifyVolumeFood"
-                                checked={cannotSpecifyVolumeFood}
-                                onCheckedChange={(checked) => {
-                                  setCannotSpecifyVolumeFood(checked as boolean);
-                                  if (checked) {
-                                    setVolumeIndex(0); // Сбрасываем ползунок в 0 при включении
-                                  }
-                                }}
-                                className="h-4 w-4"
-                              />
-                              <label
-                                htmlFor="cannotSpecifyVolumeFood"
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                              >
-                                Не могу указать объем
-                              </label>
-                            </div>
-                          </div>
-                          
-                          <div className={`transition-opacity duration-200 ${cannotSpecifyVolumeFood ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
-                            <Slider
-                              value={[volumeIndex]}
-                              onValueChange={(value) => setVolumeIndex(value[0])}
-                              min={0}
-                              max={volumeSteps.length - 1}
-                              step={1}
-                              className="w-full"
-                              disabled={cannotSpecifyVolumeFood}
-                            />
-                          </div>
-                          <div className={`relative text-[10px] text-muted-foreground h-4 transition-opacity duration-200 ${cannotSpecifyVolumeFood ? 'opacity-40' : 'opacity-100'}`}>
-                            <span className="absolute left-0 -translate-x-0 whitespace-nowrap">1 м³</span>
-                            <span className="absolute left-[11.11%] -translate-x-1/2 whitespace-nowrap">10</span>
-                            <span className="absolute left-[23.46%] -translate-x-1/2 whitespace-nowrap">20</span>
-                            <span className="absolute left-[35.80%] -translate-x-1/2 whitespace-nowrap">30</span>
-                            <span className="absolute left-[48.15%] -translate-x-1/2 whitespace-nowrap">40</span>
-                            <span className="absolute left-[60.49%] -translate-x-1/2 whitespace-nowrap">50</span>
-                            <span className="absolute left-[72.84%] -translate-x-1/2 whitespace-nowrap">60</span>
-                            <span className="absolute left-[85.19%] -translate-x-1/2 whitespace-nowrap">70</span>
-                            <span className="absolute left-[97.53%] -translate-x-1/2 whitespace-nowrap">80</span>
-                            <span className="absolute left-[100%] -translate-x-full whitespace-nowrap">82 м³</span>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* ВРЕМЕННО ОТКЛЮЧЕНО - Информация о машине - показываем если выбран тип упаковки кроме палет */}
-                    {/* {foodPackaging && foodPackaging !== "pallets" && (
-                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Truck className="w-5 h-5 text-primary flex-shrink-0" />
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-xs text-primary">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).name}
-                            </h4>
-                            <p className="text-[10px] text-muted-foreground">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).description}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-1 text-[10px]">
-                          <div className="bg-white/70 rounded px-1.5 py-0.5 text-center">
-                            <div className="font-medium text-muted-foreground">Вес</div>
-                            <div className="text-primary font-semibold">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).capacity}
-                            </div>
-                          </div>
-                          <div className="bg-white/70 rounded px-2 py-1 text-center">
-                            <div className="font-medium text-muted-foreground">Объём</div>
-                            <div className="text-primary font-semibold">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).volumeCapacity}
-                            </div>
-                          </div>
-                          <div className="bg-white/70 rounded px-2 py-1 text-center">
-                            <div className="font-medium text-muted-foreground">Размеры</div>
-                            <div className="text-primary font-semibold text-[10px]">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).dimensions}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )} */}
-                  </>
-                )}
-              </div>
-
-              {!showFinalPrice ? (
-                <div className="flex gap-2 pt-3">
-                  <Button 
-                    variant="outline"
-                    className="w-1/3 h-10" 
-                    onClick={() => {
-                      setCalculatorStep(1);
-                      setShowFinalPrice(false);
-                    }}
-                  >
-                    Назад
-                  </Button>
-                  <Button 
-                    className="w-2/3 h-10"
-                    variant={(!foodPackaging || (foodPackaging === "pallets" && !foodPalletCount)) ? "outline" : "default"}
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      
-                      // Проверяем заполненность полей
-                      let hasErrors = false;
-                      
-                      if (!foodPackaging) {
-                        setFoodPackagingError(true);
-                        hasErrors = true;
-                      }
-                      if (foodPackaging === "pallets" && !foodPalletCount) {
-                        setFoodPalletCountError(true);
-                        hasErrors = true;
-                      }
-                      
-                      if (hasErrors) {
-                        return;
-                      }
-
-                      // Выполняем расчет стоимости
-                      const weight = weightSteps[weightIndex];
-                      // Используем 0 для объема, если активен чекбокс "Не могу указать объем"
-                      const volume = cannotSpecifyVolumeFood ? 0 : volumeSteps[volumeIndex];
-                      
-                      const result = calculateShippingCost(
-                        fromCity,
-                        toCity,
-                        routeDistance!,
-                        weight,
-                        volume,
-                        transportType  // 🆕 Передаем категорию груза
-                      );
-                      
-                      if (result && result.cost) {
-                        // Применяем коэффициент для рефрижератора
-                        const finalCost = truckType === "refrigerator" 
-                          ? Math.round(result.cost * REFRIGERATOR_COEFFICIENT)
-                          : result.cost;
-                        
-                        // Информация для администратора в консоли
-                        if (truckType === "refrigerator") {
-                          console.log("🔧 ADMIN: Применён коэффициент рефрижератора");
-                          console.log(`   Базовая стоимость: ${result.cost.toLocaleString()} ₽`);
-                          console.log(`   Коэффициент: ${REFRIGERATOR_COEFFICIENT}`);
-                          console.log(`   Финальная стоимость: ${finalCost.toLocaleString()} ₽`);
-                        }
-                        
-                        // Сохраняем позицию скролла перед изменением состояния
-                        scrollPositionRef.current = window.pageYOffset;
-                        
-                        setEstimatedCost(finalCost);
-                        setShowFinalPrice(true);
-                      }
-                    }}
-                  >
-                    Получить расчёт
-                  </Button>
-                </div>
-              ) : (
-                !showContactForm && (
-                  <div className="flex gap-2 pt-3">
-                    <Button 
-                      variant="outline"
-                      className="w-1/2 h-10" 
-                      onClick={() => {
-                        setShowFinalPrice(false);
-                        setShowContactForm(false);
-                        setUserContact("");
-                      }}
-                    >
-                      Изменить параметры
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      className="w-1/2 h-10"
-                      style={{
-                        borderColor: '#405b9a',
-                        color: '#405b9a'
-                      }}
-                      onClick={() => {
-                        setCalculatorStep(1);
-                        setShowFinalPrice(false);
-                        setShowContactForm(false);
-                        setUserContact("");
-                        setTransportType("");
-                        setTruckType("");
-                        setTemperatureMode("");
-                        setFoodPackaging("");
-                        setFoodPalletCount("");
-                        setWeightIndex(0);
-                        setVolumeIndex(0);
-                      }}
-                    >
-                      Новый расчёт
-                    </Button>
-                  </div>
-                )
-              )}
-            </>
-          )}
-
-          {calculatorStep === 2 && transportType === "Другое" && (
-            <>
-              {/* ШАГ 2: Другое (аналогично промышленным товарам) */}
-              <div className="space-y-2">
-                {/* Показываем форму только если цена ещё не рассчитана */}
-                {!showFinalPrice && (
-                  <>
-                    {/* Характер груза */}
-                    <div className="space-y-2">
-                      <Label htmlFor="otherNature" className="text-sm font-bold text-[#083cb5]">Характер груза</Label>
-                      <div 
-                        className={`rounded-lg transition-all ${
-                          otherNatureError 
-                            ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/20' 
-                            : ''
-                        }`}
-                      >
-                        <Input
-                          id="otherNature"
-                          type="text"
-                          placeholder="Оборудование, мебель и тп"
-                          value={otherNature}
-                          onChange={(e) => {
-                            setOtherNature(e.target.value);
-                            if (otherNatureError) setOtherNatureError(false);
-                          }}
-                          className="h-9"
-                        />
-                      </div>
-                      {otherNatureError && (
-                        <p className="text-sm text-orange-600 font-medium flex items-center gap-1 mt-1">
-                          <span className="inline-block w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse"></span>
-                          Укажите характер груза
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Как упакован груз */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-[#083cb5]">Как упакован груз?</Label>
-                      <div 
-                        className={`grid grid-cols-1 gap-1.5 rounded-lg p-2 -m-2 transition-all ${
-                          otherPackagingError 
-                            ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/20' 
-                            : ''
-                        }`}
-                      >
-                        {/* На палетах - с inline полем */}
-                        <div
-                          className={`flex items-center gap-2 flex-wrap py-2 px-2.5 rounded-lg border-2 transition-all ${
-                            otherPackaging === 'pallets'
-                              ? 'border-primary bg-primary/5 shadow-sm'
-                              : 'border-border hover:border-primary/50 hover:bg-primary/5'
-                          }`}
-                        >
-                          <label className="flex items-center cursor-pointer flex-shrink-0">
-                            <input
-                              type="radio"
-                              name="other-packaging"
-                              value="pallets"
-                              checked={otherPackaging === 'pallets'}
-                              onChange={(e) => {
-                                setOtherPackaging(e.target.value);
-                                if (otherPackagingError) setOtherPackagingError(false);
-                              }}
-                              className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
-                            />
-                            <span className={`ml-3 text-sm ${otherPackaging === 'pallets' ? 'font-semibold text-primary' : 'font-medium'}`}>
-                              На палетах
-                            </span>
-                          </label>
-                          {otherPackaging === 'pallets' && (
-                            <div className="flex-1 min-w-[200px]">
-                              <div 
-                                className={`rounded-lg transition-all ${
-                                  otherPalletCountError 
-                                    ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/20' 
-                                    : ''
-                                }`}
-                              >
-                                <Input
-                                  id="otherPalletCount"
-                                  type="number"
-                                  placeholder="Укажите количество палет"
-                                  value={otherPalletCount}
-                                  onChange={(e) => {
-                                    setOtherPalletCount(e.target.value);
-                                    if (otherPalletCountError) setOtherPalletCountError(false);
-                                  }}
-                                  className="h-8 text-sm"
-                                  min="1"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Остальные варианты */}
-                        {[
-                          { value: 'individual', label: 'Индивидуальная упаковка' },
-                          { value: 'bulk', label: 'Навалом (без упаковки)' },
-                          { value: 'loose', label: 'Россыпью' }
-                        ].map((option) => (
-                          <label
-                            key={option.value}
-                            className={`flex items-center py-2 px-2.5 rounded-lg border-2 cursor-pointer transition-all ${
-                              otherPackaging === option.value
-                                ? 'border-primary bg-primary/5 shadow-sm'
-                                : 'border-border hover:border-primary/50 hover:bg-primary/5'
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="other-packaging"
-                              value={option.value}
-                              checked={otherPackaging === option.value}
-                              onChange={(e) => {
-                                setOtherPackaging(e.target.value);
-                                if (otherPackagingError) setOtherPackagingError(false);
-                              }}
-                              className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
-                            />
-                            <span className={`ml-3 text-sm ${otherPackaging === option.value ? 'font-semibold text-primary' : 'font-medium'}`}>
-                              {option.label}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                      {otherPackagingError && (
-                        <p className="text-sm text-orange-600 font-medium flex items-center gap-1 mt-1">
-                          <span className="inline-block w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse"></span>
-                          Выберите тип упаковки груза
-                        </p>
-                      )}
-                    </div>
-
-                    {/* ВРЕМЕННО ОТКЛЮЧЕНО - Информация о машине для палет (другое) */}
-                    {/* {otherPackaging === "pallets" && (
-                      <>
-                        {otherPalletCount && parseInt(otherPalletCount) > 0 && (
-                          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Truck className="w-5 h-5 text-primary flex-shrink-0" />
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-sm text-primary">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).name}
-                                </h4>
-                                <p className="text-xs text-muted-foreground">
-                                  Для {otherPalletCount} {parseInt(otherPalletCount) === 1 ? 'палеты' : parseInt(otherPalletCount) < 5 ? 'палет' : 'палет'} • {volumeSteps[volumeIndex]} м³
-                                </p>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-1.5 text-xs">
-                              <div className="bg-white/70 rounded px-2 py-1 text-center">
-                                <div className="font-medium text-muted-foreground">Вес</div>
-                                <div className="text-primary font-semibold">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).capacity}
-                                </div>
-                              </div>
-              <div className="bg-white/70 rounded px-2 py-1 text-center">
-                                <div className="font-medium text-muted-foreground">Объём</div>
-                                <div className="text-primary font-semibold">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).volumeCapacity}
-                                </div>
-                              </div>
-                              <div className="bg-white/70 rounded px-2 py-1 text-center">
-                                <div className="font-medium text-muted-foreground">Размеры</div>
-                                <div className="text-primary font-semibold text-[10px]">
-                                  {getTruckInfoByVolume(volumeSteps[volumeIndex]).dimensions}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )} */}
-
-                    {/* Вес и объем - показываем для всех кроме "На палетах" */}
-                    {otherPackaging && otherPackaging !== "pallets" && (
-                      <>
-                        {/* Вес груза */}
-                        <div className="space-y-2 pt-2">
-                          <Label className="text-sm font-bold text-[#083cb5]">
-                            Вес груза: {weightSteps[weightIndex] >= 1000 
-                              ? `${(weightSteps[weightIndex] / 1000).toFixed(1)} т` 
-                              : `${weightSteps[weightIndex]} кг`}
-                          </Label>
-                          <Slider
-                            value={[weightIndex]}
-                            onValueChange={(value) => setWeightIndex(value[0])}
-                            min={0}
-                            max={weightSteps.length - 1}
-                            step={1}
-                            className="w-full"
-                          />
-                          <div className="relative text-[10px] text-muted-foreground h-4">
-                            <span className="absolute left-0 -translate-x-0 whitespace-nowrap">200 кг</span>
-                            <span className="absolute left-[9.09%] -translate-x-1/2 whitespace-nowrap">500</span>
-                            <span className="absolute left-[13.64%] -translate-x-1/2 whitespace-nowrap">1т</span>
-                            <span className="absolute left-[36.36%] -translate-x-1/2 whitespace-nowrap">5т</span>
-                            <span className="absolute left-[59.09%] -translate-x-1/2 whitespace-nowrap">10т</span>
-                            <span className="absolute left-[81.82%] -translate-x-1/2 whitespace-nowrap">15т</span>
-                            <span className="absolute left-[100%] -translate-x-full whitespace-nowrap">20т</span>
-                          </div>
-                        </div>
-
-                        {/* Объем груза */}
-                        <div className="space-y-2 pt-2">
-                          {/* Заголовок и чекбокс в одной строке */}
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-bold text-[#083cb5]">Объём груза: {volumeSteps[volumeIndex]} м³</Label>
-                            
-                            {/* Чекбокс "Не могу указать объем" */}
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id="cannotSpecifyVolumeOther"
-                                checked={cannotSpecifyVolumeOther}
-                                onCheckedChange={(checked) => {
-                                  setCannotSpecifyVolumeOther(checked as boolean);
-                                  if (checked) {
-                                    setVolumeIndex(0); // Сбрасываем ползунок в 0 при включении
-                                  }
-                                }}
-                                className="h-4 w-4"
-                              />
-                              <label
-                                htmlFor="cannotSpecifyVolumeOther"
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                              >
-                                Не могу указать объем
-                              </label>
-                            </div>
-                          </div>
-                          
-                          <div className={`transition-opacity duration-200 ${cannotSpecifyVolumeOther ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
-                            <Slider
-                              value={[volumeIndex]}
-                              onValueChange={(value) => setVolumeIndex(value[0])}
-                              min={0}
-                              max={volumeSteps.length - 1}
-                              step={1}
-                              className="w-full"
-                              disabled={cannotSpecifyVolumeOther}
-                            />
-                          </div>
-                          <div className={`relative text-[10px] text-muted-foreground h-4 transition-opacity duration-200 ${cannotSpecifyVolumeOther ? 'opacity-40' : 'opacity-100'}`}>
-                            <span className="absolute left-0 -translate-x-0 whitespace-nowrap">1 м³</span>
-                            <span className="absolute left-[11.11%] -translate-x-1/2 whitespace-nowrap">10</span>
-                            <span className="absolute left-[23.46%] -translate-x-1/2 whitespace-nowrap">20</span>
-                            <span className="absolute left-[35.80%] -translate-x-1/2 whitespace-nowrap">30</span>
-                            <span className="absolute left-[48.15%] -translate-x-1/2 whitespace-nowrap">40</span>
-                            <span className="absolute left-[60.49%] -translate-x-1/2 whitespace-nowrap">50</span>
-                            <span className="absolute left-[72.84%] -translate-x-1/2 whitespace-nowrap">60</span>
-                            <span className="absolute left-[85.19%] -translate-x-1/2 whitespace-nowrap">70</span>
-                            <span className="absolute left-[97.53%] -translate-x-1/2 whitespace-nowrap">80</span>
-                            <span className="absolute left-[100%] -translate-x-full whitespace-nowrap">82 м³</span>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* ВРЕМЕННО ОТКЛЮЧЕНО - Информация о машине - показываем если выбран тип упаковки кроме палет */}
-                    {/* {otherPackaging && otherPackaging !== "pallets" && (
-                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Truck className="w-5 h-5 text-primary flex-shrink-0" />
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-xs text-primary">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).name}
-                            </h4>
-                            <p className="text-[10px] text-muted-foreground">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).description}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-1 text-[10px]">
-                          <div className="bg-white/70 rounded px-1.5 py-0.5 text-center">
-                            <div className="font-medium text-muted-foreground">Вес</div>
-                            <div className="text-primary font-semibold">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).capacity}
-                            </div>
-                          </div>
-                          <div className="bg-white/70 rounded px-2 py-1 text-center">
-                            <div className="font-medium text-muted-foreground">Объём</div>
-                            <div className="text-primary font-semibold">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).volumeCapacity}
-                            </div>
-                          </div>
-                          <div className="bg-white/70 rounded px-2 py-1 text-center">
-                            <div className="font-medium text-muted-foreground">Размеры</div>
-                            <div className="text-primary font-semibold text-[10px]">
-                              {getTruckInfoByVolume(volumeSteps[volumeIndex]).dimensions}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )} */}
-                  </>
-                )}
-              </div>
-
-              {!showFinalPrice ? (
-                <div className="flex gap-2 pt-3">
-                  <Button 
-                    variant="outline"
-                    className="w-1/3 h-10" 
-                    onClick={() => {
-                      setCalculatorStep(1);
-                      setShowFinalPrice(false);
-                    }}
-                  >
-                    Назад
-                  </Button>
-                  <Button 
-                    className="w-2/3 h-10"
-                    variant={(!otherPackaging || !otherNature || (otherPackaging === "pallets" && !otherPalletCount)) ? "outline" : "default"}
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      
-                      // Проверяем заполненность полей
-                      let hasErrors = false;
-                      
-                      if (!otherPackaging) {
-                        setOtherPackagingError(true);
-                        hasErrors = true;
-                      }
-                      if (!otherNature) {
-                        setOtherNatureError(true);
-                        hasErrors = true;
-                      }
-                      if (otherPackaging === "pallets" && !otherPalletCount) {
-                        setOtherPalletCountError(true);
-                        hasErrors = true;
-                      }
-                      
-                      if (hasErrors) {
-                        return;
-                      }
-
-                      // Выполняем расчет стоимости
-                      const weight = weightSteps[weightIndex];
-                      // Используем 0 для объема, если активен чекбокс "Не могу указать объем"
-                      const volume = cannotSpecifyVolumeOther ? 0 : volumeSteps[volumeIndex];
-                      
-                      const result = calculateShippingCost(
-                        fromCity,
-                        toCity,
-                        routeDistance!,
-                        weight,
-                        volume,
-                        transportType  // 🆕 Передаем категорию груза
-                      );
-                      
-                      if (result && result.cost) {
-                        // Сохраняем позицию скролла перед изменением состояния
-                        scrollPositionRef.current = window.pageYOffset;
-                        
-                        setEstimatedCost(result.cost);
-                        setShowFinalPrice(true);
-                      }
-                    }}
-                  >
-                    Получить расчёт
-                  </Button>
-                </div>
-              ) : (
-                !showContactForm && (
-                  <div className="flex gap-2 pt-3">
-                    <Button 
-                      variant="outline"
-                      className="w-1/2 h-10" 
-                      onClick={() => {
-                        setShowFinalPrice(false);
-                        setShowContactForm(false);
-                        setUserContact("");
-                      }}
-                    >
-                      Изменить параметры
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      className="w-1/2 h-10"
-                      style={{
-                        borderColor: '#405b9a',
-                        color: '#405b9a'
-                      }}
-                      onClick={() => {
-                        setCalculatorStep(1);
-                        setShowFinalPrice(false);
-                        setShowContactForm(false);
-                        setUserContact("");
-                        setTransportType("");
-                        setOtherPackaging("");
-                        setOtherPalletCount("");
-                        setOtherNature("");
-                        setWeightIndex(0);
-                        setVolumeIndex(0);
-                      }}
-                    >
-                      Новый расчёт
-                    </Button>
-                  </div>
-                )
-              )}
-            </>
-          )}
+          <MovingConstructor
+            isOpen={isConstructorOpen}
+            onClose={() => setIsConstructorOpen(false)}
+            onApply={handleConstructorApplyFactory(
+              setIsConstructorOpen,
+              setVolumeIndex,
+              setConstructorItems,
+              setConstructorFloorUtilization,
+              setConstructorRecommendedTruck,
+              setShowFinalPrice,
+              volumeSteps
+            )}
+            initialVolume={volumeSteps[volumeIndex]}
+          />
         </div>
       </div>
     </div>

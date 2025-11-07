@@ -117,10 +117,10 @@ const Contacts = () => {
             {/* Левая колонка - Контактная информация */}
             <div className="space-y-8">
               
-              {/* Перевозки Межгород */}
+              {/* Перевозки по России */}
               <div className="bg-[#f0f3f5] rounded-lg p-8 border border-border shadow-sm hover:shadow-md transition-shadow">
                 <h2 className="text-2xl font-bold mb-6" style={{color: '#083cb5'}}>
-                  Перевозки Межгород
+                  Перевозки по России
                 </h2>
                 <div className="space-y-4">
                   <a 

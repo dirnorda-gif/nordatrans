@@ -1,9 +1,16 @@
 /**
  * Менеджер глобального кэша маршрутов
  * Обеспечивает единое хранилище данных маршрутов между всеми страницами
+ * Включает проверку версии тарифов для обнаружения несоответствий
  */
 
+import { TARIFF_VERSION } from "./shippingCalculator";
+
 interface RouteData {
+  version?: string;
+  tariffVersion?: string; // Версия тарифной сетки, на основе которой создан кэш
+  generatedAt?: string;
+  expiresAt?: string;
   routes: {
     toMoscow: any[];
     fromMoscow: any[];
@@ -54,6 +61,9 @@ export const loadRouteCacheDelayed = async (delay: number = 1000): Promise<Route
         const data = await import("@/data/routeCache.json");
         globalRouteCache = data.default as RouteData;
         
+        // Проверка версии тарифов
+        checkTariffVersionCompatibility(globalRouteCache);
+        
         console.log('✅ Данные маршрутов загружены (глобальный кэш)');
         
         // Уведомляем все ожидающие коллбэки
@@ -77,5 +87,64 @@ export const loadRouteCacheDelayed = async (delay: number = 1000): Promise<Route
 export const clearRouteCache = (): void => {
   globalRouteCache = null;
   console.log('🗑️ Кэш маршрутов очищен');
+};
+
+/**
+ * Проверка совместимости версий тарифов
+ * Выводит предупреждения в консоль при несоответствии версий
+ * @param cacheData Данные из routeCache.json
+ */
+const checkTariffVersionCompatibility = (cacheData: RouteData): void => {
+  const cacheTariffVersion = cacheData?.tariffVersion;
+  const currentTariffVersion = TARIFF_VERSION;
+
+  if (!cacheTariffVersion) {
+    console.warn(
+      '%c⚠️ ВАЖНО: routeCache.json не содержит версию тарифов!',
+      'color: orange; font-weight: bold; font-size: 14px;'
+    );
+    console.warn(
+      '   Аккордеон может показывать устаревшие цены.\n' +
+      '   Проверьте соответствие цен в аккордеоне и калькуляторе.\n' +
+      '   При необходимости обновите routeCache.json.'
+    );
+    return;
+  }
+
+  if (cacheTariffVersion !== currentTariffVersion) {
+    console.error(
+      '%c🚨 КРИТИЧЕСКОЕ ПРЕДУПРЕЖДЕНИЕ: Версии тарифов не совпадают!',
+      'color: red; font-weight: bold; font-size: 16px; background: yellow; padding: 5px;'
+    );
+    console.error(
+      `   Версия тарифов в routeCache.json: ${cacheTariffVersion}\n` +
+      `   Текущая версия тарифов в коде: ${currentTariffVersion}\n\n` +
+      '   ❌ Аккордеон показывает УСТАРЕВШИЕ цены!\n' +
+      '   ✅ Калькулятор использует АКТУАЛЬНЫЕ тарифы.\n\n' +
+      '   ⚠️  Цены в аккордеоне и калькуляторе НЕ СОВПАДАЮТ!\n\n' +
+      '   🔧 ДЕЙСТВИЯ:\n' +
+      '   1. Обновите routeCache.json с новыми ценами\n' +
+      '   2. Установите tariffVersion: "' + currentTariffVersion + '"\n' +
+      '   3. Увеличьте версию кэша (version)\n' +
+      '   4. Обновите дату generatedAt\n\n' +
+      '   📖 См. инструкцию: КАК-ОБНОВИТЬ-КЭШ.md'
+    );
+
+    // Опционально: автоматически очистить кэш (закомментировано для безопасности)
+    // console.warn('🗑️ Автоматически очищаю устаревший кэш...');
+    // globalRouteCache = null;
+  } else {
+    console.log(
+      `✅ Версия тарифов совпадает (${currentTariffVersion}) - кэш актуален`
+    );
+  }
+};
+
+/**
+ * Получить текущую версию тарифов
+ * @returns Версия тарифной сетки
+ */
+export const getCurrentTariffVersion = (): string => {
+  return TARIFF_VERSION;
 };
 

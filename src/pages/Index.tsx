@@ -8,6 +8,7 @@ import YandexMetrika from "@/components/YandexMetrika";
 import { ShippingCalculatorForm } from "@/components/ShippingCalculatorForm";
 import { useYandexMetrika } from "@/hooks/useYandexMetrika";
 import { BannerUp } from "@/components/BannerUp";
+import { BrandCard } from "@/components/BrandCard";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -17,8 +18,8 @@ const Index = () => {
   const [showFinalPrice, setShowFinalPrice] = useState(false);
   const [fromCity, setFromCity] = useState("");
   const [toCity, setToCity] = useState("");
-  const [fromCoordinates, setFromCoordinates] = useState<[number, number] | undefined>();
-  const [toCoordinates, setToCoordinates] = useState<[number, number] | undefined>();
+  const [fromCoordinates, setFromCoordinates] = useState<[number, number] | undefined>(undefined);
+  const [toCoordinates, setToCoordinates] = useState<[number, number] | undefined>(undefined);
   const [transportType, setTransportType] = useState("");
   const [weightIndex, setWeightIndex] = useState(0);
   const [volumeIndex, setVolumeIndex] = useState(0);
@@ -71,7 +72,12 @@ const Index = () => {
       <Header />
       
       {/* Hero Section */}
-      <BannerUp className="hidden md:block w-full py-8" overlayType="white">
+      <BannerUp 
+        className="hidden md:block w-full py-8" 
+        overlayType="white"
+        backgroundImage="/Lucid_Origin_Photorealistic_169_wallpaper_a_white_cab_Scania_s_3.webp"
+        backgroundPosition="center 50%"
+      >
         {/* Background pattern with CSS */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-16 h-16 border-2 border-blue-200 rounded-lg rotate-12"></div>
@@ -93,18 +99,41 @@ const Index = () => {
           <div className="hidden md:flex items-start justify-between gap-8">
             {/* Left side - Title block */}
             <div className="w-[450px]">
-              <div className="relative p-6 rounded-lg shadow-sm hover:shadow-md transition-all overflow-visible" style={{borderTopRightRadius: '0', backgroundColor: 'rgba(8, 60, 181, 0.85)'}}>
-                {/* Вырез в правом верхнем углу с плавным закруглением */}
-                <div className="absolute top-0 right-0 w-14 h-14 bg-background" style={{borderBottomLeftRadius: '100%', borderTopRightRadius: '8px'}}></div>
-                {/* Логотип компании вместо кружочка со стрелкой */}
-                <div className="absolute -top-2 -right-2 w-12 h-12 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform z-10 bg-white p-1">
+              <div className="relative p-6 rounded-lg shadow-sm hover:shadow-md transition-all overflow-visible" style={{backgroundColor: '#073CB5'}}>
+                {/* Пульсирующие окружности - первый вариант (приглушённый) */}
+                <div className="absolute -top-3 -right-3 w-16 h-16">
+                  {/* Первая пульсирующая окружность */}
+                  <div 
+                    className="absolute inset-0 rounded-full border-[3px] border-white"
+                    style={{
+                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }}
+                  ></div>
+                  {/* Вторая пульсирующая окружность с задержкой */}
+                  <div 
+                    className="absolute inset-0 rounded-full border-[3px] border-white"
+                    style={{
+                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                      animationDelay: '0.75s',
+                    }}
+                  ></div>
+                  {/* Третья пульсирующая окружность с задержкой */}
+                  <div 
+                    className="absolute inset-0 rounded-full border-[3px] border-white"
+                    style={{
+                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                      animationDelay: '1.5s',
+                    }}
+                  ></div>
+                </div>
+                
+                {/* Логотип компании (увеличенный) */}
+                <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-10 bg-white p-2">
                   <picture>
                     <source srcSet="/logo_norda.webp" type="image/webp" />
                     <img 
                       src="/logo_norda.png" 
                       alt="NORDA TRANS Logo"
-                      width="48"
-                      height="48"
                       className="w-full h-full object-contain"
                     />
                   </picture>
@@ -141,51 +170,39 @@ const Index = () => {
       </BannerUp>
 
       {/* Work Fast Section */}
-      <section className="w-full py-16 bg-[#f0f3f5]">
+      <section className="w-full pb-16 bg-[#f0f3f5]" style={{ paddingTop: 'calc(4rem - 15px)' }}>
         <div className="container mx-auto px-6">
           <h2 className="text-4xl font-bold text-center mb-12" style={{color: '#083cb5'}}>
             Работаем быстро
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <Clock className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Быстрая подача</h3>
-              <p className="text-muted-foreground">
-                Автомобиль подается в течение 2-3 часов после заявки
-              </p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <BrandCard
+              title="Быстрая подача"
+              description="Автомобиль подается в течение 2-3 часов после заявки"
+              icon={Clock}
+              maskColor="#f0f3f5"
+            />
 
-            <div className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <Truck className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Широкий автопарк</h3>
-              <p className="text-muted-foreground">
-                Более 100 единиц техники различной грузоподъёмности
-              </p>
-            </div>
+            <BrandCard
+              title="Широкий автопарк"
+              description="Более 100 единиц техники различной грузоподъёмности"
+              icon={Truck}
+              maskColor="#f0f3f5"
+            />
 
-            <div className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <Shield className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Надёжность</h3>
-              <p className="text-muted-foreground">
-                Страхование груза и полная ответственность за сохранность
-              </p>
-            </div>
+            <BrandCard
+              title="Надёжность"
+              description="Страхование груза и полная ответственность за сохранность"
+              icon={Shield}
+              maskColor="#f0f3f5"
+            />
 
-            <div className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <TrendingUp className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Выгодные цены</h3>
-              <p className="text-muted-foreground">
-                Цены ниже, чем у конкурентов, без потери качества
-              </p>
-            </div>
+            <BrandCard
+              title="Выгодные цены"
+              description="Цены ниже, чем у конкурентов, без потери качества"
+              icon={TrendingUp}
+              maskColor="#f0f3f5"
+            />
           </div>
         </div>
       </section>

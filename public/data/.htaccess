@@ -1,0 +1,15 @@
+# .htaccess для защиты data папки
+
+# Запрещаем доступ ко всем файлам в этой директории
+Order Deny,Allow
+Deny from all
+
+# Запрещаем листинг
+Options -Indexes
+
+# Запрещаем выполнение PHP
+<FilesMatch "\.(php|php3|php4|php5|phtml)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+

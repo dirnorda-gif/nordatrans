@@ -42,6 +42,56 @@
 - Use clear, descriptive commit-style messages when explaining changes
 - Document any temporary modifications that need to be reverted later
 
+### 9. Response Style: Brief by Default
+- **Default:** Give concise, to-the-point answers
+- **Detailed mode:** Only provide comprehensive explanations when user explicitly uses keywords:
+  - "расскажи подробно"
+  - "опиши подробно"
+  - "объясни подробно"
+  - "покажи подробно"
+- **Brief examples:**
+  - Question: "Как запустить сервер?" → Answer: "npm run dev"
+  - Question: "Где посмотреть токены?" → Answer: "Settings → Account → Usage"
+- **Detailed examples:**
+  - Question: "Расскажи подробно как работает калькулятор" → Full explanation with code examples
+
+### 10. ⚠️ КРИТИЧЕСКИ ВАЖНО: Тарифы и Кэш маршрутов
+**При изменении тарифов в `tariffConfig` или коэффициентов в `weightCoefficients`:**
+
+1. **ОБЯЗАТЕЛЬНО увеличьте версию тарифов:**
+   ```typescript
+   // В src/utils/shippingCalculator.ts
+   export const TARIFF_VERSION = "1.0.1"; // ← Увеличьте версию!
+   export const TARIFF_UPDATED_AT = "2025-01-29"; // ← Обновите дату
+   ```
+
+2. **НАПОМИНАНИЕ ПЕРЕД ДЕПЛОЕМ:**
+   - ⚠️ **НЕ ДЕПЛОЙТЬ** изменения на сайт, пока не обновлен `routeCache.json`!
+   - ⚠️ Аккордеон будет показывать **УСТАРЕВШИЕ** цены
+   - ⚠️ Калькулятор будет показывать **НОВЫЕ** цены
+   - ⚠️ Будет **НЕСООТВЕТСТВИЕ** между аккордеоном и калькулятором
+
+3. **Перед деплоем ОБЯЗАТЕЛЬНО:**
+   - ✅ Пересчитать все цены для маршрутов
+   - ✅ Обновить `src/data/routeCache.json` с новыми ценами
+   - ✅ Установить `"tariffVersion": "X.X.X"` (совпадает с TARIFF_VERSION)
+   - ✅ Увеличить `"version"` в routeCache.json
+   - ✅ Обновить `"generatedAt"`
+
+4. **Проверка:**
+   - После обновления routeCache.json в консоли должно появиться:
+     ```
+     ✅ Версия тарифов совпадает (X.X.X) - кэш актуален
+     ```
+   - Если видите 🚨 предупреждение - кэш НЕ обновлен!
+
+5. **См. подробную инструкцию:** `ИНСТРУКЦИЯ-ВЕРСИОНИРОВАНИЕ-ТАРИФОВ.md`
+
+**Правило действует при изменении:**
+- Любого тарифа в `tariffConfig` (даже одного значения)
+- Коэффициентов в `weightCoefficients`
+- Добавлении/удалении маршрутов
+
 ---
 
 ## 📋 MANDATORY: Summary of Modified Files
@@ -69,6 +119,6 @@ This section must:
 
 ---
 
-**Version:** 1.0  
-**Last Updated:** October 29, 2025
+**Version:** 1.2  
+**Last Updated:** November 3, 2025
 

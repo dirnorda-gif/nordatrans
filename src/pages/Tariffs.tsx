@@ -11,6 +11,8 @@ import WorkProcess from "@/components/WorkProcess";
 import { ShippingCalculatorForm } from "@/components/ShippingCalculatorForm";
 import { RoutesAccordion } from "@/components/RoutesAccordion";
 import { BannerUp } from "@/components/BannerUp";
+import { FlipProblemsSection } from "@/components/FlipProblemsSection";
+import CustomRouteRequest from "@/components/CustomRouteRequest";
 
 const Index = () => {
   // Form states
@@ -18,8 +20,8 @@ const Index = () => {
   const [showFinalPrice, setShowFinalPrice] = useState(false); // Показывать ли финальную цену
   const [fromCity, setFromCity] = useState("");
   const [toCity, setToCity] = useState("");
-  const [fromCoordinates, setFromCoordinates] = useState<[number, number] | undefined>();
-  const [toCoordinates, setToCoordinates] = useState<[number, number] | undefined>();
+  const [fromCoordinates, setFromCoordinates] = useState<[number, number] | undefined>(undefined);
+  const [toCoordinates, setToCoordinates] = useState<[number, number] | undefined>(undefined);
   const [transportType, setTransportType] = useState("");
   const [weightIndex, setWeightIndex] = useState(0); // индекс в массиве weightSteps
   const [volumeIndex, setVolumeIndex] = useState(0); // индекс в массиве volumeSteps
@@ -114,18 +116,41 @@ const Index = () => {
           <div className="hidden md:flex items-start justify-between gap-8">
             {/* Left side - Title block */}
             <div className="w-[450px]">
-              <div className="relative p-6 rounded-lg shadow-sm hover:shadow-md transition-all overflow-visible" style={{borderTopRightRadius: '0', backgroundColor: 'rgba(8, 60, 181, 0.85)'}}>
-                {/* Вырез в правом верхнем углу с плавным закруглением */}
-                <div className="absolute top-0 right-0 w-14 h-14 bg-background" style={{borderBottomLeftRadius: '100%', borderTopRightRadius: '8px'}}></div>
-                {/* Логотип компании вместо кружочка со стрелкой */}
-                <div className="absolute -top-2 -right-2 w-12 h-12 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform z-10 bg-white p-1">
+              <div className="relative p-6 rounded-lg shadow-sm hover:shadow-md transition-all overflow-visible" style={{backgroundColor: '#073CB5'}}>
+                {/* Пульсирующие окружности - первый вариант (приглушённый) */}
+                <div className="absolute -top-3 -right-3 w-16 h-16">
+                  {/* Первая пульсирующая окружность */}
+                  <div 
+                    className="absolute inset-0 rounded-full border-[3px] border-white"
+                    style={{
+                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }}
+                  ></div>
+                  {/* Вторая пульсирующая окружность с задержкой */}
+                  <div 
+                    className="absolute inset-0 rounded-full border-[3px] border-white"
+                    style={{
+                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                      animationDelay: '0.75s',
+                    }}
+                  ></div>
+                  {/* Третья пульсирующая окружность с задержкой */}
+                  <div 
+                    className="absolute inset-0 rounded-full border-[3px] border-white"
+                    style={{
+                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                      animationDelay: '1.5s',
+                    }}
+                  ></div>
+                </div>
+                
+                {/* Логотип компании (увеличенный) */}
+                <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-10 bg-white p-2">
                   <picture>
                     <source srcSet="/logo_norda.webp" type="image/webp" />
                     <img 
                       src="/logo_norda.png" 
-                      alt="NORDA TRANS Logo" 
-                      width="48"
-                      height="48"
+                      alt="NORDA TRANS Logo"
                       className="w-full h-full object-contain"
                     />
                   </picture>
@@ -161,30 +186,14 @@ const Index = () => {
         </div>
       </BannerUp>
 
-      {/* Mobile Call Button - только для мобильных */}
-      <div className="md:hidden w-full px-4 py-4 bg-background">
-        <a 
-          href="tel:+74994440651"
-          className="mobile-call-button flex items-center justify-center gap-3 w-full py-5 rounded-2xl text-white font-bold text-lg shadow-2xl hover:shadow-[0_0_30px_rgba(8,60,181,0.6)] transition-all active:scale-95 relative overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #083cb5 0%, #0a4dd6 100%)',
-            boxShadow: '0 8px 32px rgba(8,60,181,0.4), 0 0 20px rgba(8,60,181,0.3)'
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-          <Phone className="w-7 h-7 relative z-10 animate-bounce" style={{animationDuration: '2s'}} />
-          <span className="relative z-10">Позвонить +7 (499) 444-06-51</span>
-        </a>
-      </div>
 
       {/* Calculator and Routes Section */}
       <section id="calculator" className="w-full py-12 bg-background">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {/* Left Column - Calculator Form (Hidden on mobile) */}
-            <div className="hidden md:block">
-              <ShippingCalculatorForm
+            {/* Left Column - Calculator Form */}
+            <ShippingCalculatorForm
               routeData={{
                 fromCity,
                 toCity,
@@ -265,16 +274,21 @@ const Index = () => {
                 reachGoal,
               }}
               />
-            </div>
             
-            {/* Right Column - Routes Accordion (Full width on mobile) */}
+            {/* Right Column - Routes Accordion */}
             <RoutesAccordion />
           </div>
         </div>
       </section>
 
+      {/* Custom Route Request - Индивидуальный маршрут (только мобильные) */}
+      <CustomRouteRequest />
+
       {/* Work Process Section - Работаем быстро! */}
       <WorkProcess />
+
+      {/* Flip Problems Section - Интерактивное сравнение проблем и решений */}
+      <FlipProblemsSection />
 
       {/* Yandex Reviews Section - Desktop */}
       <Reviews />

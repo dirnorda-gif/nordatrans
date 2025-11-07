@@ -13,6 +13,18 @@ interface BannerUpProps {
    * Дочерние элементы (контент внутри баннера)
    */
   children?: React.ReactNode;
+  /**
+   * Кастомный путь к фоновому изображению (опционально)
+   */
+  backgroundImage?: string;
+  /**
+   * Позиция фонового изображения (опционально, по умолчанию 'center 60%')
+   */
+  backgroundPosition?: string;
+  /**
+   * Размер фонового изображения (опционально, по умолчанию 'cover')
+   */
+  backgroundSize?: string;
 }
 
 /**
@@ -22,7 +34,10 @@ interface BannerUpProps {
 export const BannerUp: React.FC<BannerUpProps> = ({ 
   className = '', 
   overlayType = 'white',
-  children 
+  children,
+  backgroundImage,
+  backgroundPosition = 'center 60%',
+  backgroundSize = 'cover'
 }) => {
   // Определяем градиент в зависимости от типа оверлея
   const getOverlayGradient = () => {
@@ -41,24 +56,27 @@ export const BannerUp: React.FC<BannerUpProps> = ({
   };
 
   const gradient = getOverlayGradient();
+  const defaultImage = backgroundImage || '/norda-trans-winter-landscape-1800px.webp';
+  
   const bgImage = gradient 
-    ? `${gradient}url('/norda-trans-winter-landscape-1800px.webp')`
-    : "url('/norda-trans-winter-landscape-1800px.webp')";
+    ? `${gradient}url('${defaultImage}')`
+    : `url('${defaultImage}')`;
 
   return (
     <section className={`relative overflow-hidden ${className}`}>
       {/* Background Image with optional gradient */}
       <div 
-        className="absolute inset-0 bg-cover bg-no-repeat"
+        className="absolute inset-0 bg-no-repeat"
         style={{
           backgroundImage: bgImage,
-          backgroundPosition: 'center 60%'
+          backgroundPosition: backgroundPosition,
+          backgroundSize: backgroundSize
         }}
       ></div>
       
       {/* White Overlay (только для white типа) */}
       {overlayType === 'white' && (
-        <div className="absolute inset-0 bg-white/40"></div>
+        <div className="absolute inset-0 bg-white/25"></div>
       )}
       
       {/* Content */}

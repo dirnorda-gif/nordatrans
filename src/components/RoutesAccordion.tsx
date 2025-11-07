@@ -49,13 +49,28 @@ const RoutesAccordionUI = ({
   const [selectedPrice, setSelectedPrice] = useState<string>("");
   const [contactMethod, setContactMethod] = useState<"phone" | "whatsapp">("phone");
   const [userContact, setUserContact] = useState<string>("");
+  const isMobile = useIsMobile();
+  
+  // Сортируем маршруты по алфавиту на мобильных устройствах
+  const sortedRoutes = isMobile 
+    ? [...routes].sort((a, b) => {
+        // Сортируем по городу отправления (from) для "В Москву" или по городу назначения (to) для "Из Москвы"
+        const cityA = a.from === "Москва" ? a.to : a.from;
+        const cityB = b.from === "Москва" ? b.to : b.from;
+        return cityA.localeCompare(cityB, 'ru');
+      })
+    : routes;
+  
+  // На мобильных показываем все маршруты сразу, на десктопе - как указано
+  const effectiveVisibleCount = isMobile ? sortedRoutes.length : (initialVisibleCount || routes.length);
   
   // Если не указано количество или оно больше/равно общему - показываем все
-  const shouldLimitRoutes = initialVisibleCount && initialVisibleCount < routes.length && showMoreButton;
+  // На мобильных кнопка "Ещё маршруты" не показывается
+  const shouldLimitRoutes = !isMobile && effectiveVisibleCount < sortedRoutes.length && showMoreButton;
   const visibleRoutes = shouldLimitRoutes && !showAll 
-    ? routes.slice(0, initialVisibleCount) 
-    : routes;
-  const hiddenCount = routes.length - (initialVisibleCount || 0);
+    ? sortedRoutes.slice(0, effectiveVisibleCount) 
+    : sortedRoutes;
+  const hiddenCount = sortedRoutes.length - effectiveVisibleCount;
 
   // Функция для форматирования номера телефона
   const formatPhoneNumber = (value: string): string => {
@@ -122,8 +137,10 @@ const RoutesAccordionUI = ({
       toCity: selectedRoute.to,
       phone: userContact,
       distance: parseInt(selectedRoute.distance),
-      weight: selectedWeight,
+      weight: parseFloat(selectedWeight.replace(/[^\d.]/g, '')) || 0,
+      volume: 0, // Значение по умолчанию для маршрутов
       cost: parseInt(selectedPrice.replace(/[^\d]/g, '')),
+      truckCapacity: selectedWeight, // Используем текст веса как грузоподъемность
       contactMethod,
       additionalInfo: {
         source: "routes_accordion",
@@ -174,23 +191,23 @@ const RoutesAccordionUI = ({
           <AccordionItem 
             key={index} 
             value={`item-${index}`} 
-            className="bg-blue-100 border-blue-300 border rounded-lg px-3 transition-all duration-200"
+            className="bg-white border-blue-300 border rounded-lg px-3 transition-all duration-200"
           >
             <AccordionTrigger className="hover:no-underline py-2">
               <div className="flex items-center justify-between w-full pr-3">
-                <div className="text-left">
-                  <p className="font-semibold text-base">{route.from} → {route.to}</p>
+                <div className="text-left md:text-left text-right w-full">
+                  <p className="font-semibold md:text-base text-sm">{route.from} → {route.to}</p>
                 </div>
               </div>
             </AccordionTrigger>
             <AccordionContent className="pb-4">
               <div className="space-y-4">
                 {/* Weight categories with prices - кликабельные карточки */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid md:grid-cols-2 grid-cols-1 gap-3">
                   {route.prices.map((priceItem, priceIndex) => (
                     <div 
                       key={priceIndex} 
-                      className="bg-white/70 rounded-lg p-3 border border-border/50 shadow-sm cursor-pointer transition-all hover:bg-primary/10 hover:border-primary/50 hover:shadow-md active:scale-95"
+                      className="bg-blue-100 border-blue-300 border rounded-lg p-3 shadow-sm cursor-pointer transition-all hover:bg-blue-200 hover:border-blue-400 hover:shadow-md active:scale-95"
                       onClick={() => handlePriceClick(route, priceItem.weight, priceItem.price)}
                     >
                       <div className="flex justify-between items-center">
@@ -217,47 +234,61 @@ const RoutesAccordionUI = ({
       {/* Dialog для оформления заказа */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Получить точный расчёт</DialogTitle>
-            <DialogDescription>
-              Выберите удобный способ связи
-            </DialogDescription>
+          <DialogHeader className={isMobile ? "space-y-1" : ""}>
+            <DialogTitle className={isMobile ? "text-lg font-bold text-center" : "text-xl font-bold text-center"}>
+              Предварительная стоимость
+            </DialogTitle>
           </DialogHeader>
           
           {selectedRoute && (
-            <div className="space-y-4 py-4">
+            <div className={isMobile ? "space-y-2 py-2" : "space-y-4 py-4"}>
               {/* Информация о маршруте */}
-              <div className="bg-blue-50 rounded-lg p-4 space-y-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">Маршрут</p>
-                  <p className="font-semibold text-lg">{selectedRoute.from} → {selectedRoute.to}</p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Расстояние</p>
-                    <p className="font-semibold">{selectedRoute.distance} км</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Вес</p>
-                    <p className="font-semibold">{selectedWeight}</p>
-                  </div>
+              <div className={isMobile ? "bg-blue-50 rounded-lg p-2 space-y-2" : "bg-blue-50 rounded-lg p-4 space-y-3"}>
+                {/* Стоимость - первой и по центру для всех */}
+                <div className={isMobile ? "text-center pb-2 border-b border-blue-200" : "text-center pb-3 border-b border-blue-200"}>
+                  <p className={isMobile ? "font-bold text-3xl text-primary" : "font-bold text-4xl text-primary"}>{selectedPrice}</p>
                 </div>
                 
                 <div>
-                  <p className="text-sm text-muted-foreground">Предварительная стоимость</p>
-                  <p className="font-bold text-2xl text-primary">{selectedPrice}</p>
+                  <p className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Маршрут</p>
+                  <p className={isMobile ? "font-semibold text-sm" : "font-semibold text-lg"}>{selectedRoute.from} → {selectedRoute.to}</p>
+                </div>
+                
+                <div className={isMobile ? "grid grid-cols-2 gap-2" : "grid grid-cols-2 gap-4"}>
+                  <div>
+                    <p className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Расстояние</p>
+                    <p className={isMobile ? "font-semibold text-sm" : "font-semibold"}>{selectedRoute.distance}</p>
+                  </div>
+                  <div>
+                    <p className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Вес</p>
+                    <p className={isMobile ? "font-semibold text-sm" : "font-semibold"}>{selectedWeight}</p>
+                  </div>
                 </div>
               </div>
 
+              {/* Информационное сообщение */}
+              <div className={isMobile ? "bg-yellow-50 border border-yellow-200 rounded-lg p-2" : "bg-yellow-50 border border-yellow-200 rounded-lg p-3"}>
+                <p className="text-xs text-yellow-800">
+                  ⚠️ Указанная стоимость является предварительной. 
+                  Точная цена будет рассчитана менеджером с учётом всех деталей перевозки.
+                </p>
+              </div>
+
+              {/* Заголовок "Получите точный расчёт" для всех */}
+              <div className="text-center">
+                <h3 className={isMobile ? "text-xl font-bold text-primary" : "text-2xl font-bold text-primary"}>Получите точный расчёт</h3>
+              </div>
+
               {/* Способ связи */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Как с вами связаться?</Label>
+              <div className={isMobile ? "space-y-1" : "space-y-2"}>
+                <Label className={isMobile ? "text-xs font-semibold" : "text-sm font-semibold"}>
+                  Как вы хотите получить расчёт?
+                </Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
                     variant={contactMethod === "phone" ? "default" : "outline"}
-                    className="h-10"
+                    className={isMobile ? "h-9 text-sm" : "h-10"}
                     onClick={() => setContactMethod("phone")}
                   >
                     <Phone className="w-4 h-4 mr-2" />
@@ -266,7 +297,7 @@ const RoutesAccordionUI = ({
                   <Button
                     type="button"
                     variant={contactMethod === "whatsapp" ? "default" : "outline"}
-                    className="h-10"
+                    className={isMobile ? "h-9 text-sm" : "h-10"}
                     onClick={() => setContactMethod("whatsapp")}
                     style={contactMethod === "whatsapp" ? {backgroundColor: '#25D366'} : {}}
                   >
@@ -277,8 +308,8 @@ const RoutesAccordionUI = ({
               </div>
 
               {/* Поле ввода контакта */}
-              <div className="space-y-2">
-                <Label htmlFor="contact" className="text-sm font-semibold">
+              <div className={isMobile ? "space-y-1" : "space-y-2"}>
+                <Label htmlFor="contact" className={isMobile ? "text-xs font-semibold" : "text-sm font-semibold"}>
                   {contactMethod === "phone" ? "Ваш номер телефона" : "Ваш номер WhatsApp"}
                 </Label>
                 <Input
@@ -292,25 +323,17 @@ const RoutesAccordionUI = ({
                       setUserContact('+7 ');
                     }
                   }}
-                  className="h-10"
+                  className={isMobile ? "h-9" : "h-10"}
                   autoComplete="tel"
                 />
               </div>
 
-              {/* Информационное сообщение */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-xs text-yellow-800">
-                  ⚠️ Указанная стоимость является предварительной. 
-                  Точная цена будет рассчитана менеджером с учётом всех деталей перевозки.
-                </p>
-              </div>
-
               {/* Кнопки */}
-              <div className="flex gap-3 pt-2">
+              <div className={isMobile ? "flex gap-2 pt-1" : "flex gap-3 pt-2"}>
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  className={isMobile ? "flex-1 h-9 text-sm" : "flex-1"}
                   onClick={() => {
                     setIsDialogOpen(false);
                     setUserContact("");
@@ -320,7 +343,7 @@ const RoutesAccordionUI = ({
                 </Button>
                 <Button
                   type="button"
-                  className="flex-1"
+                  className={isMobile ? "flex-1 h-9 text-sm" : "flex-1"}
                   style={{backgroundColor: '#083cb5'}}
                   disabled={!userContact || userContact.length < 10}
                   onClick={handleSubmit}
@@ -335,13 +358,15 @@ const RoutesAccordionUI = ({
       
       {/* Кнопка "Еще маршруты" */}
       {shouldLimitRoutes && !showAll && (
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => setShowAll(true)}
-        >
-          Еще маршруты ({hiddenCount})
-        </Button>
+        <div className="flex justify-center pt-4">
+          <Button
+            variant="outline"
+            className="w-full max-w-md mb-[12px]"
+            onClick={() => setShowAll(true)}
+          >
+            Еще маршруты ({hiddenCount})
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -524,17 +549,70 @@ export const RoutesAccordion = ({
   
   return (
     <div className="space-y-6">
-      <div className="bg-blue-50/50 rounded-lg p-6 border border-blue-200 shadow-sm">
+      <div 
+        className="relative bg-blue-100 rounded-lg p-3 border border-blue-300 shadow-sm"
+        style={{
+          borderRadius: '60px',
+        }}
+      >
+        {/* Круглая маска для кнопки (ЛЕВЫЙ верхний угол) */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: 94,
+            height: 94,
+            top: -16,
+            left: -18,
+            backgroundColor: '#fafafa',
+          }}
+        />
+
+        {/* Правый прямоугольник с вогнутым углом */}
+        <div
+          className="absolute"
+          style={{
+            width: 47,
+            height: 47,
+            top: -16,
+            left: 29,
+            background: `radial-gradient(circle at bottom left, transparent 40px, #fafafa 40px)`,
+          }}
+        />
+
+        {/* Нижний прямоугольник с вогнутым углом */}
+        <div
+          className="absolute"
+          style={{
+            width: 47,
+            height: 47,
+            top: 31,
+            left: -18,
+            background: `radial-gradient(circle at top right, transparent 40px, #fafafa 40px)`,
+          }}
+        />
+
+        {/* Кнопка с иконкой грузовика (ЛЕВЫЙ верхний угол) */}
+        <div
+          className="absolute rounded-full flex items-center justify-center"
+          style={{
+            width: 60,
+            height: 60,
+            top: 1,
+            left: -1,
+            backgroundColor: '#d1d5db',
+            zIndex: 50,
+          }}
+        >
+          <Truck className="w-7 h-7" style={{color: '#405b9a'}} />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-            <Truck className="w-6 h-6 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold">Популярные маршруты</h2>
+        <div className="flex items-center md:justify-center justify-end mb-3 relative z-10 md:pr-0 pr-5" style={{marginTop: '20px'}}>
+          <h2 className="md:text-2xl text-lg font-bold md:text-center text-right">Популярные маршруты</h2>
         </div>
         
         {/* Direction Toggle */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 relative z-10" style={{marginTop: '55px', marginBottom: '27px'}}>
           <Button
             variant={routeDirection === "to-moscow" ? "default" : "outline"}
             onClick={() => handleDirectionChange("to-moscow")}
@@ -552,11 +630,13 @@ export const RoutesAccordion = ({
         </div>
         
         {/* Routes Accordion */}
-        <RoutesAccordionUI 
-          routes={currentRoutes} 
-          initialVisibleCount={initialVisibleCount}
-          showMoreButton={showMoreButton}
-        />
+        <div className="relative z-10">
+          <RoutesAccordionUI 
+            routes={currentRoutes} 
+            initialVisibleCount={initialVisibleCount}
+            showMoreButton={showMoreButton}
+          />
+        </div>
       </div>
     </div>
   );

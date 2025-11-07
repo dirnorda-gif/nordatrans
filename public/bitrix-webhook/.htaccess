@@ -1,0 +1,35 @@
+# Bitrix24 Webhook Handler - Apache Configuration
+
+# Включаем обработку PHP
+<IfModule mod_php7.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+</IfModule>
+
+# Разрешаем доступ к index.php
+<Files "index.php">
+    Order Allow,Deny
+    Allow from all
+    
+    # Разрешаем POST и GET запросы
+    <LimitExcept POST GET OPTIONS>
+        Deny from all
+    </LimitExcept>
+</Files>
+
+# Защита лог-файла от прямого доступа
+<Files "webhook.log">
+    Order Deny,Allow
+    Deny from all
+</Files>
+
+# Устанавливаем правильные заголовки для CORS
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "POST, GET, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type"
+</IfModule>
+
+# Устанавливаем кодировку UTF-8
+AddDefaultCharset UTF-8
+

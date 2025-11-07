@@ -57,6 +57,16 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        problem: {
+          DEFAULT: "hsl(var(--problem))",
+          light: "hsl(var(--problem-light))",
+          foreground: "hsl(var(--problem-foreground))",
+        },
+        solution: {
+          DEFAULT: "hsl(var(--solution))",
+          light: "hsl(var(--solution-light))",
+          foreground: "hsl(var(--solution-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

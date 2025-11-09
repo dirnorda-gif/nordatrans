@@ -14,11 +14,10 @@ const getTruckImage = (truckName: string): string => {
   const imageMap: Record<string, string> = {
     'Портер': '/1-removebg-preview (1).webp',                    // 6м³, 800кг
     'Газель': '/3-removebg-preview (1).webp',                    // 9м³
-    'Газель (удлинённая)': '/3-removebg-preview (1).webp',       // 9м³
-    'Фургон 3 тонны': '/5-removebg-preview (1).webp',            // 15м³
-    'Фургон 5 тонн': '/7-removebg-preview (1).webp',             // 30м³
-    'Фургон 10 тонн': '/2-removebg-preview (1).webp',            // 45м³
-    'Еврофура 20 тонн': '/4-removebg-preview (1).webp',          // 82м³
+    '3 тонны': '/5-removebg-preview (1).webp',                   // 15м³
+    '5 тонн': '/7-removebg-preview (1).webp',                    // 30м³
+    '10 тонн': '/2-removebg-preview (1).webp',                   // 45м³
+    '20 тонн': '/4-removebg-preview (1).webp',                   // 82м³
   };
   
   return imageMap[truckName] || '/1-removebg-preview (1).webp';
@@ -27,13 +26,12 @@ const getTruckImage = (truckName: string): string => {
 // Размеры кузова для каждого типа (из данных автопарка)
 const getTruckDimensions = (truckName: string) => {
   const dimensions: Record<string, { length: string; width: string; height: string; pallets: number }> = {
-    'Портер': { length: '2.65м', width: '1.5м', height: '1.6м', pallets: 2 },
-    'Газель': { length: '3м', width: '1.95м', height: '1.6м', pallets: 4 },
-    'Газель (удлинённая)': { length: '3м', width: '1.95м', height: '1.6м', pallets: 4 },
-    'Фургон 3 тонны': { length: '3.8м', width: '2.1м', height: '2м', pallets: 6 },
-    'Фургон 5 тонн': { length: '4-6м', width: '2.3м', height: '2.2м', pallets: 10 },
-    'Фургон 10 тонн': { length: '6-9м', width: '2.4м', height: '2.35м', pallets: 17 },
-    'Еврофура 20 тонн': { length: '13.6м', width: '2.45м', height: '2.65м', pallets: 33 },
+    'Портер': { length: '2,65м', width: '1,5м', height: '1,6м', pallets: 2 },
+    'Газель': { length: '3м', width: '1,95м', height: '1,6м', pallets: 4 },
+    '3 тонны': { length: '3,80м', width: '2,1м', height: '2м', pallets: 6 },
+    '5 тонн': { length: '4-6м', width: '2,3м', height: '2,2м', pallets: 10 },
+    '10 тонн': { length: '6-9м', width: '2,4м', height: '2,35м', pallets: 17 },
+    '20 тонн': { length: '13,6м', width: '2,45м', height: '2,65м', pallets: 33 },
   };
   
   return dimensions[truckName] || { length: '3м', width: '2м', height: '2м', pallets: 4 };

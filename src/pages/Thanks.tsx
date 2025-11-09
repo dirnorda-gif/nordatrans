@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, ArrowLeft, Phone } from "lucide-react";
 import Header from "@/components/Header";
@@ -9,6 +9,10 @@ import WorkProcess from "@/components/WorkProcess";
 
 const Thanks = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Получаем путь, откуда пришел пользователь (если есть)
+  const fromPath = (location.state as { from?: string })?.from || '/';
 
   useEffect(() => {
     // Прокручиваем страницу вверх при загрузке
@@ -66,7 +70,7 @@ const Thanks = () => {
                       Вернуться к тарифам
                     </Button>
                     <Button
-                      onClick={() => navigate('/')}
+                      onClick={() => navigate(fromPath)}
                       style={{ backgroundColor: '#083cb5' }}
                       className="flex items-center justify-center gap-2"
                     >

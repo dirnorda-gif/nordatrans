@@ -31,21 +31,12 @@ interface Bitrix24LeadData {
     minimumApplied?: boolean;
     // Домашний переезд
     usedConstructor?: boolean; // Флаг использования конструктора переезда
-    constructorFloorUtilization?: number; // Площадь пола кузова (%) из конструктора
-    constructorItems?: ConstructorItem[]; // Список предметов из конструктора
-    movingItems?: {
-      boxes?: boolean;
-      furniture?: boolean;
-      appliances?: boolean;
-    };
-    boxesCount?: string;
-    furnitureDetails?: string;
-    appliancesDetails?: string;
+    constructorItems?: ConstructorItem[]; // Список предметов из конструктора (компактный вывод)
     // Промышленные товары
     cargoPackaging?: string;
     palletCount?: string;
     cargoNature?: string;
-    // Новое поле: вес одной палеты (для всех типов, если используется палетная логика)
+    // Вес одной палеты (для всех типов, если используется палетная логика)
     palletWeightPerKg?: string;
     // Продукты питания
     truckType?: string;
@@ -93,60 +84,46 @@ const formatCargoDetails = (data: Bitrix24LeadData): string => {
   
   let details = '';
   
-  // Домашний переезд
+  // ========== ДОМАШНИЙ ПЕРЕЕЗД ==========
   if (info.cargoType === 'Домашний переезд') {
     details += '\n\nДЕТАЛИ ДОМАШНЕГО ПЕРЕЕЗДА:';
     
+    // Показываем объем груза (всегда есть)
+    details += `\n- Объем груза: ${data.volume} м³`;
+    
     // Указываем как был рассчитан объем
     if (info.usedConstructor) {
-      details += '\n- Объем рассчитан в КОНСТРУКТОРЕ ПЕРЕЕЗДА';
+      details += '\n- Способ расчета: КОНСТРУКТОР ПЕРЕЕЗДА';
       
-      // Показываем площадь пола кузова если есть
-      if (info.constructorFloorUtilization !== undefined) {
-        details += `\n- Заполненность пола кузова: ${(info.constructorFloorUtilization * 100).toFixed(0)}%`;
-      }
-      
-      // Показываем список предметов с габаритами
+      // Компактный список предметов с габаритами
       if (info.constructorItems && info.constructorItems.length > 0) {
-        details += '\n\nСПИСОК ПРЕДМЕТОВ ИЗ КОНСТРУКТОРА:';
-        let totalItems = 0;
+        details += '\n\nСПИСОК ВЕЩЕЙ:';
         
         info.constructorItems.forEach((constructorItem) => {
           const item = constructorItem.item;
           const qty = constructorItem.quantity;
-          totalItems += qty;
           
-          details += `\n• ${item.name} × ${qty} шт.`;
-          details += `\n  Габариты: ${item.length}×${item.width}×${item.height} см`;
-          details += `\n  Объем одного предмета: ${item.volume.toFixed(3)} м³`;
-          if (qty > 1) {
-            details += `\n  Общий объем: ${(item.volume * qty).toFixed(3)} м³`;
-          }
+          // Краткий формат: Название × кол-во (Д×Ш×В см)
+          details += `\n• ${item.name} × ${qty} шт. (${item.length}×${item.width}×${item.height} см)`;
         });
         
+        // Подсчитываем общее количество предметов
+        const totalItems = info.constructorItems.reduce((sum, ci) => sum + ci.quantity, 0);
         details += `\n\nВСЕГО ПРЕДМЕТОВ: ${totalItems} шт.`;
       }
     } else {
-      details += '\n- Объем выбран САМОСТОЯТЕЛЬНО пользователем';
-    }
-    
-    // Детали перевозимых предметов (если есть)
-    if (info.movingItems) {
-      if (info.movingItems.boxes) {
-        details += `\n- Коробки${info.boxesCount ? ` (${info.boxesCount} шт.)` : ''}`;
-      }
-      if (info.movingItems.furniture) {
-        details += `\n- Мебель${info.furnitureDetails ? `: ${info.furnitureDetails}` : ''}`;
-      }
-      if (info.movingItems.appliances) {
-        details += `\n- Бытовая техника${info.appliancesDetails ? `: ${info.appliancesDetails}` : ''}`;
-      }
+      details += '\n- Способ расчета: ВЫБРАН ПОЛЬЗОВАТЕЛЕМ ВРУЧНУЮ';
     }
   }
   
-  // Промышленные товары
+  // ========== ПРОМЫШЛЕННЫЕ ТОВАРЫ ==========
   if (info.cargoType === 'Промышленные товары') {
     details += '\n\nДЕТАЛИ ПРОМЫШЛЕННЫХ ТОВАРОВ:';
+    
+    // Объем и вес (пользователь выбирает сам)
+    details += `\n- Объем груза: ${data.volume} м³`;
+    details += `\n- Вес груза: ${data.weight >= 1000 ? `${(data.weight / 1000).toFixed(1)} т` : `${data.weight} кг`}`;
+    
     if (info.cargoPackaging) {
       const packagingMap: Record<string, string> = {
         'pallets': 'На палетах',
@@ -165,9 +142,14 @@ const formatCargoDetails = (data: Bitrix24LeadData): string => {
     }
   }
   
-  // Продукты питания
+  // ========== ПРОДУКТЫ ПИТАНИЯ ==========
   if (info.cargoType === 'Продукты питания') {
     details += '\n\nДЕТАЛИ ПРОДУКТОВ ПИТАНИЯ:';
+    
+    // Объем и вес (пользователь выбирает сам)
+    details += `\n- Объем груза: ${data.volume} м³`;
+    details += `\n- Вес груза: ${data.weight >= 1000 ? `${(data.weight / 1000).toFixed(1)} т` : `${data.weight} кг`}`;
+    
     if (info.truckType) {
       const truckTypeMap: Record<string, string> = {
         'tented': 'Тентованный',
@@ -183,7 +165,9 @@ const formatCargoDetails = (data: Bitrix24LeadData): string => {
       const packagingMap: Record<string, string> = {
         'pallets': 'На палетах',
         'boxes': 'В коробках',
-        'containers': 'В контейнерах'
+        'individual': 'Индивидуальная упаковка',
+        'bulk': 'Навалом (без упаковки)',
+        'loose': 'Россыпью'
       };
       details += `\n- Упаковка: ${packagingMap[info.foodPackaging] || info.foodPackaging}`;
       if (info.foodPackaging === 'pallets') {
@@ -193,9 +177,14 @@ const formatCargoDetails = (data: Bitrix24LeadData): string => {
     }
   }
   
-  // Другое
+  // ========== ДРУГОЕ ==========
   if (info.cargoType === 'Другое') {
     details += '\n\nДЕТАЛИ ГРУЗА:';
+    
+    // Объем и вес (пользователь выбирает сам)
+    details += `\n- Объем груза: ${data.volume} м³`;
+    details += `\n- Вес груза: ${data.weight >= 1000 ? `${(data.weight / 1000).toFixed(1)} т` : `${data.weight} кг`}`;
+    
     if (info.otherPackaging) {
       const packagingMap: Record<string, string> = {
         'pallets': 'На палетах',

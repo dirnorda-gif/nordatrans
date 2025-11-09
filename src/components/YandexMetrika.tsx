@@ -2,7 +2,16 @@ import { useEffect } from 'react';
 
 declare global {
   interface Window {
-    ym?: any;
+    ym?: {
+      (counterId: number, method: string, ...args: any[]): void;
+      [counterId: number]: {
+        getClientID?: () => string | number;
+        reachGoal?: (goalName: string, params?: any) => void;
+        hit?: (url: string, options?: any) => void;
+      };
+      a?: any[];
+      l?: number;
+    };
     yandex_metrika_callbacks2?: any[];
   }
 }

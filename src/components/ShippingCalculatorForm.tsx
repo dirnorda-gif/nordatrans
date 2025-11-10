@@ -855,17 +855,27 @@ const handleConstructorApplyFactory = (
       setWeightIndex(0);
     }
     if (volumeIndex >= volumeSteps.length) {
-      // Для "Домашний переезд" устанавливаем начальное значение 45 м³
-      if (transportType === "Домашний переезд") {
-        setVolumeIndex(45);
-      } else {
-        setVolumeIndex(0);
-      }
-    } else if (transportType === "Домашний переезд" && volumeIndex === 0) {
-      // Если перешли на "Домашний переезд" и объем 0, ставим 45 м³
-      setVolumeIndex(45);
+      // Если индекс вышел за пределы массива, сбрасываем его в 0
+      setVolumeIndex(0);
     }
   }, [transportType]);
+
+  // Сброс volumeIndex в 0 при переходе на шаг 2 для домашнего переезда (если конструктор не использован)
+  // Используем useRef для отслеживания, был ли уже выполнен сброс при переходе на шаг 2
+  const resetVolumeOnStep2Ref = useRef(false);
+  
+  useEffect(() => {
+    if (calculatorStep === 2 && transportType === "Домашний переезд") {
+      // Если конструктор не был использован и сброс еще не выполнялся, сбрасываем volumeIndex в 0
+      if ((!constructorItems || constructorItems.length === 0) && !resetVolumeOnStep2Ref.current) {
+        setVolumeIndex(0);
+        resetVolumeOnStep2Ref.current = true;
+      }
+    } else if (calculatorStep !== 2) {
+      // Сбрасываем флаг при уходе со шага 2
+      resetVolumeOnStep2Ref.current = false;
+    }
+  }, [calculatorStep, transportType, constructorItems]);
 
   // Автоматическое определение веса для домашнего переезда
   useEffect(() => {
@@ -1681,28 +1691,31 @@ const handleConstructorApplyFactory = (
                       />
                     </div>
 
-                    <div className="border-2 border-white/40 rounded-lg p-4 bg-white/5 hover:bg-white/10 transition-all">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Wrench className="w-5 h-5 text-white" />
-                            <h3 className="text-sm font-bold text-white">Затрудняетесь с объёмом перевозки?</h3>
+                    {/* Показываем блок "Открыть конструктор" только если конструктор ещё не использован */}
+                    {(!constructorItems || constructorItems.length === 0) && (
+                      <div className="border-2 border-white/40 rounded-lg p-4 bg-white/5 hover:bg-white/10 transition-all">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Wrench className="w-5 h-5 text-white" />
+                              <h3 className="text-sm font-bold text-white">Затрудняетесь с объёмом перевозки?</h3>
+                            </div>
+                            <p className="text-xs text-white/80">
+                              Воспользуйтесь нашим конструктором — выберите предметы, и мы автоматически рассчитаем объём и предложим подходящую машину.
+                            </p>
                           </div>
-                          <p className="text-xs text-white/80">
-                            Воспользуйтесь нашим конструктором — выберите предметы, и мы автоматически рассчитаем объём и предложим подходящую машину.
-                          </p>
+                          <Button
+                            type="button"
+                            onClick={() => setIsConstructorOpen(true)}
+                            className="bg-white hover:bg-white/90 text-[#083cb5] font-semibold whitespace-nowrap"
+                            size="sm"
+                          >
+                            <Package className="w-4 h-4 mr-2" />
+                            Открыть конструктор
+                          </Button>
                         </div>
-                        <Button
-                          type="button"
-                          onClick={() => setIsConstructorOpen(true)}
-                          className="bg-white hover:bg-white/90 text-[#083cb5] font-semibold whitespace-nowrap"
-                          size="sm"
-                        >
-                          <Package className="w-4 h-4 mr-2" />
-                          Открыть конструктор
-                        </Button>
                       </div>
-                    </div>
+                    )}
                   </>
                 )}
               </div>
@@ -1724,15 +1737,16 @@ const handleConstructorApplyFactory = (
                   </Button>
                   <Button 
                     className="w-2/3 h-9" 
-                    variant={volumeIndex === 0 ? "outline" : "default"}
+                    variant={(volumeIndex === 0 && (!constructorItems || constructorItems.length === 0)) ? "outline" : "default"}
                     type="button"
-                    style={volumeIndex === 0 ? {backgroundColor: '#8599AE', borderColor: '#8599AE'} : {backgroundColor: '#FFFFFF', color: '#405b9a'}}
+                    disabled={(volumeIndex === 0 && (!constructorItems || constructorItems.length === 0))}
+                    style={(volumeIndex === 0 && (!constructorItems || constructorItems.length === 0)) ? {backgroundColor: '#8599AE', borderColor: '#8599AE'} : {backgroundColor: '#FFFFFF', color: '#405b9a'}}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       
-                      // Проверяем объем груза
-                      if (volumeIndex === 0) {
+                      // Проверяем объем груза (но разрешаем расчет, если конструктор был использован)
+                      if (volumeIndex === 0 && (!constructorItems || constructorItems.length === 0)) {
                         setVolumeError(true);
                         return;
                       }

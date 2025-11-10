@@ -3,7 +3,7 @@ import { Search, X, Plus, Minus, Package, Trash2, AlertTriangle, Eye } from "luc
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   MOVING_ITEMS_DATABASE,
   CATEGORIES,
@@ -235,7 +235,7 @@ export const MovingConstructor = ({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl md:h-[95vh] h-screen md:max-h-[95vh] max-h-screen p-0 gap-0 md:rounded-[20px] rounded-none overflow-hidden flex flex-col">
-          <DialogHeader className="p-4 md:p-6 pb-3 md:pb-4 border-b flex-shrink-0">
+          <DialogHeader className="p-3 md:p-4 pb-2 md:pb-3 border-b flex-shrink-0">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <DialogTitle className="text-xl md:text-2xl font-bold flex items-center gap-2" style={{ color: '#083cb5' }}>
@@ -252,7 +252,7 @@ export const MovingConstructor = ({
                 <Button
                   variant="outline"
                   onClick={() => setShowVisualizationModal(true)}
-                  className="flex-shrink-0 border-dashed border-2 border-gray-300 hover:border-[#083cb5] hover:bg-blue-50"
+                  className="flex-shrink-0 border-dashed border-2 border-gray-300 hover:border-[#083cb5] hover:bg-blue-50 mr-[30px]"
                   size="sm"
                 >
                   <Eye className="w-4 h-4 mr-2" />
@@ -263,8 +263,8 @@ export const MovingConstructor = ({
             </div>
           </DialogHeader>
 
-          {/* 📱 Мобильные табы (показываем только на мобильных) */}
-          <div className="lg:hidden flex border-b bg-gray-100">
+          {/* 📱 Мобильные табы (показываем только на мобильных, до md) */}
+          <div className="md:hidden flex border-b bg-gray-100">
             <button
               onClick={() => setMobileTab('items')}
               className={`flex-1 py-3 px-4 text-sm font-semibold transition-all relative ${
@@ -301,11 +301,11 @@ export const MovingConstructor = ({
             </button>
           </div>
 
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-0 overflow-hidden">
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-0 overflow-hidden">
           {/* ЛЕВАЯ ЧАСТЬ: Выбор предметов */}
-          <div className={`lg:col-span-2 flex flex-col lg:border-r ${mobileTab === 'items' ? 'block' : 'hidden lg:flex'}`}>
+          <div className={`md:col-span-2 flex flex-col md:border-r ${mobileTab === 'items' ? 'block' : 'hidden md:flex'}`}>
             {/* Поиск */}
-            <div className="p-4 border-b">
+            <div className="p-3 border-b">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
@@ -327,7 +327,7 @@ export const MovingConstructor = ({
             </div>
 
             {/* Категории */}
-            <div className="p-3 md:p-4 border-b bg-gray-50">
+            <div className="p-2 md:p-3 border-b bg-gray-50">
               <div className="flex md:flex-wrap gap-2 overflow-x-auto pb-1 -mx-3 px-3 md:mx-0 md:px-0 scrollbar-hide">
                 <Button
                   variant={selectedCategory === "all" ? "default" : "outline"}
@@ -355,8 +355,8 @@ export const MovingConstructor = ({
             </div>
 
             {/* Список предметов */}
-            <ScrollArea className="flex-1 overflow-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-              <div className="p-3 md:p-4">
+            <ScrollArea className="flex-1 overflow-auto" style={{ maxHeight: 'calc(100vh - 260px)' }}>
+              <div className="p-2 md:p-3">
               {filteredItems.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Package className="w-16 h-16 mx-auto mb-4 opacity-30" />
@@ -381,13 +381,28 @@ export const MovingConstructor = ({
                         `}
                         onClick={() => addItem(item)}
                       >
+                        {/* Кнопка добавления в виде кружка с плюсиком в правом верхнем углу (показывается только если предмет не выбран) */}
+                        {!selected && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addItem(item);
+                            }}
+                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-[#083cb5] hover:bg-[#083cb5]/90 text-white flex items-center justify-center shadow-sm transition-all hover:scale-110 active:scale-95 z-10"
+                            aria-label="Добавить"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        )}
+                        
+                        {/* Индикатор количества (показывается только если предмет выбран) */}
                         {selected && (
-                          <div className="absolute top-2 right-2 w-6 h-6 bg-[#083cb5] rounded-full flex items-center justify-center text-white text-xs font-bold">
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-[#083cb5] rounded-full flex items-center justify-center text-white text-xs font-bold z-10">
                             {selected.quantity}
                           </div>
                         )}
                         
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-3 pr-8">
                           <div className="text-2xl flex-shrink-0">{category.icon}</div>
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-gray-900 text-sm leading-tight">
@@ -396,25 +411,7 @@ export const MovingConstructor = ({
                             <p className="text-xs text-gray-500 mt-1">
                               {item.length}×{item.width}×{item.height} см
                             </p>
-                            <p className="text-sm font-bold mt-1" style={{ color: '#083cb5' }}>
-                              {item.volume.toFixed(3)} м³
-                            </p>
                           </div>
-                        </div>
-                        
-                        <div className="mt-2 pt-2 border-t border-gray-200">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full text-xs h-9 md:h-8"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addItem(item);
-                            }}
-                          >
-                            <Plus className="w-4 h-4 md:w-3 md:h-3 mr-1" />
-                            Добавить
-                          </Button>
                         </div>
                       </div>
                     );
@@ -426,23 +423,23 @@ export const MovingConstructor = ({
           </div>
 
           {/* ПРАВАЯ ЧАСТЬ: Выбранные предметы и итоги */}
-          <div className={`flex flex-col bg-gray-50 ${mobileTab === 'cart' ? 'block' : 'hidden lg:flex'}`}>
-            <div className="p-4 border-b bg-white">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-lg">Ваш груз</h3>
+          <div className={`flex flex-col bg-gray-50 cart-container ${mobileTab === 'cart' ? 'block' : 'hidden md:flex'}`}>
+            <div className="p-2 border-b bg-white">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-bold text-sm">Ваш груз</h3>
                 {selectedItems.length > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleClear}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 px-2"
                   >
-                    <Trash2 className="w-4 h-4 mr-1" />
+                    <Trash2 className="w-3 h-3 mr-1" />
                     Очистить
                   </Button>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mb-3">
+              <p className="text-xs text-gray-500 mb-1.5">
                 {selectedItems.length === 0 
                   ? 'Выберите предметы слева' 
                   : `Выбрано: ${selectedItems.length} ${selectedItems.length === 1 ? 'предмет' : selectedItems.length < 5 ? 'предмета' : 'предметов'}`
@@ -463,8 +460,8 @@ export const MovingConstructor = ({
               )}
             </div>
 
-            <ScrollArea className="flex-1 overflow-auto" style={{ maxHeight: 'calc(100vh - 360px)' }}>
-              <div className="p-3 md:p-4">
+            <ScrollArea className="flex-1 cart-scrollbar" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+              <div className="p-2 md:p-3">
               {selectedItems.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -479,9 +476,43 @@ export const MovingConstructor = ({
                     return (
                       <div
                         key={item.id}
-                        className="p-3 bg-white rounded-lg border border-gray-200"
+                        className="relative p-2 bg-white rounded-lg border border-gray-200"
                       >
-                        <div className="flex items-start gap-2">
+                        {/* Элементы управления в правом верхнем углу */}
+                        <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                          {/* Кнопки плюс/минус и количество */}
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => updateQuantity(item.id, -1)}
+                              className="h-6 w-6 p-0 hover:bg-gray-100"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </Button>
+                            <span className="text-xs font-bold w-6 text-center">{quantity}</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => updateQuantity(item.id, 1)}
+                              className="h-6 w-6 p-0 hover:bg-gray-100"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          {/* Иконка удаления */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeItem(item.id)}
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        
+                        {/* Основной контент */}
+                        <div className="flex items-start gap-2 pr-20">
                           <div className="text-lg flex-shrink-0">{category.icon}</div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900 leading-tight">
@@ -492,34 +523,6 @@ export const MovingConstructor = ({
                             </p>
                           </div>
                         </div>
-                        
-                        <div className="flex items-center gap-2 mt-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateQuantity(item.id, -1)}
-                            className="h-9 w-9 md:h-7 md:w-7 p-0"
-                          >
-                            <Minus className="w-4 h-4 md:w-3 md:h-3" />
-                          </Button>
-                          <span className="text-sm font-bold w-10 md:w-8 text-center">{quantity}</span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateQuantity(item.id, 1)}
-                            className="h-9 w-9 md:h-7 md:w-7 p-0"
-                          >
-                            <Plus className="w-4 h-4 md:w-3 md:h-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => removeItem(item.id)}
-                            className="ml-auto h-9 md:h-7 text-red-600 hover:text-red-700 hover:bg-red-50 px-3 md:px-2"
-                          >
-                            <Trash2 className="w-4 h-4 md:w-3 md:h-3" />
-                          </Button>
-                        </div>
                       </div>
                     );
                   })}
@@ -527,10 +530,42 @@ export const MovingConstructor = ({
               )}
               </div>
             </ScrollArea>
+            
+            <style>{`
+              .cart-scrollbar [data-radix-scroll-area-viewport] {
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                height: 100% !important;
+                width: 100% !important;
+              }
+              .cart-scrollbar [data-radix-scroll-area-scrollbar][data-orientation="vertical"] {
+                width: 17px !important;
+                background-color: #e5e7eb !important;
+                opacity: 0.6;
+                transition: opacity 0.2s ease, background-color 0.2s ease;
+              }
+              .cart-container:hover .cart-scrollbar [data-radix-scroll-area-scrollbar][data-orientation="vertical"] {
+                opacity: 1 !important;
+                background-color: #d1d5db !important;
+              }
+              .cart-scrollbar [data-radix-scroll-area-thumb] {
+                background-color: #405B9A !important;
+                border-radius: 9999px !important;
+                min-height: 40px !important;
+                opacity: 0.8;
+                transition: opacity 0.2s ease, background-color 0.2s ease;
+              }
+              .cart-container:hover .cart-scrollbar [data-radix-scroll-area-thumb] {
+                opacity: 1 !important;
+              }
+              .cart-scrollbar [data-radix-scroll-area-thumb]:hover {
+                opacity: 1 !important;
+              }
+            `}</style>
 
             {/* Итоги */}
-            <div className="p-4 pb-24 lg:pb-4 border-t bg-white space-y-3">
-              <div className="space-y-2">
+            <div className="p-3 pb-24 md:pb-3 border-t bg-white space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex justify-between items-baseline">
                   <span className="font-bold text-gray-900">Итого объём:</span>
                   <span className="text-2xl font-bold" style={{ color: '#083cb5' }}>
@@ -539,13 +574,6 @@ export const MovingConstructor = ({
                 </div>
                 
                 <div className="pt-2 border-t">
-                  <div className="text-center p-3 rounded-lg" style={{ backgroundColor: '#f0f3f5' }}>
-                    <p className="text-xs text-gray-600 mb-1">Рекомендуемая машина:</p>
-                    <p className="font-bold text-sm" style={{ color: '#083cb5' }}>
-                      {recommendedTruck}
-                    </p>
-                  </div>
-                  
                   {/* Предупреждение о высоте */}
                   {heightWarning && (
                     <div className="mt-2 p-2 rounded-lg bg-orange-50 border border-orange-200">
@@ -570,24 +598,6 @@ export const MovingConstructor = ({
                     </div>
                   )}
                 </div>
-              </div>
-
-              {/* Кнопки только на десктопе */}
-              <div className="hidden lg:flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                  className="flex-1"
-                >
-                  Отмена
-                </Button>
-                <Button
-                  onClick={handleApply}
-                  disabled={selectedItems.length === 0}
-                  className="flex-1 bg-[#083cb5] hover:bg-[#083cb5]/90"
-                >
-                  Рассчитать стоимость
-                </Button>
               </div>
             </div>
           </div>

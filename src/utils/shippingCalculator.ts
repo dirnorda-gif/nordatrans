@@ -639,7 +639,23 @@ const calculateSmallCargoCost = (
  * Нормализует название города
  */
 const normalizeCityName = (city: string): string => {
-  return city.trim().replace(/\s+/g, " ");
+  let normalized = city.trim().replace(/\s+/g, " ");
+  
+  // Убираем префикс "Россия, " если есть
+  normalized = normalized.replace(/^Россия,\s*/i, "");
+  
+  // Разбиваем по запятым и берем последнюю часть (обычно это название города)
+  const parts = normalized.split(",").map(p => p.trim());
+  
+  // Если есть несколько частей, берем последнюю (название города)
+  if (parts.length > 1) {
+    normalized = parts[parts.length - 1];
+  }
+  
+  // Убираем региональные суффиксы, которые могут остаться
+  normalized = normalized.replace(/\s+(область|край|республика|АО|округ)$/i, "");
+  
+  return normalized.trim();
 };
 
 /**
@@ -873,9 +889,12 @@ export const calculateShippingCost = (
     return null;
   }
   
-  // Определяем направление
-  const isMoscowOrigin = fromCity.toLowerCase().includes("москва") || fromCity.toLowerCase() === "москва";
-  const isMoscowDestination = toCity.toLowerCase().includes("москва") || toCity.toLowerCase() === "москва";
+  // Определяем направление (используем нормализацию для корректной проверки)
+  const normalizedFromCity = normalizeCityName(fromCity).toLowerCase();
+  const normalizedToCity = normalizeCityName(toCity).toLowerCase();
+  
+  const isMoscowOrigin = normalizedFromCity.includes("москва") || normalizedFromCity === "москва";
+  const isMoscowDestination = normalizedToCity.includes("москва") || normalizedToCity === "москва";
   
   let direction: "fromMoscow" | "toMoscow" | "city-to-city";
   let targetCity: string;

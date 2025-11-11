@@ -432,11 +432,41 @@ export const ShippingCalculatorForm = ({
       const geoObjects =
         data.response.GeoObjectCollection.featureMember || [];
 
-      // Фильтруем только объекты из России
+      // Фильтруем только объекты из России, исключаем регионы и Калининград
       const filteredObjects = geoObjects.filter((item: any) => {
         const address = item.GeoObject.metaDataProperty.GeocoderMetaData.Address;
         const countryCode = address?.country_code;
-        return countryCode === "RU";
+        
+        // Проверяем, что это Россия
+        if (countryCode !== "RU") return false;
+        
+        // Получаем текст адреса для проверки
+        const displayText = item.GeoObject.metaDataProperty.GeocoderMetaData.text.toLowerCase();
+        
+        // Исключаем Калининград и Калининградскую область
+        if (displayText.includes("калининград")) {
+          return false;
+        }
+        
+        // Исключаем регионы (области, края, республики)
+        const regionKeywords = ["область", "край", "республика"];
+        const isRegion = regionKeywords.some(keyword => displayText.includes(keyword));
+        
+        if (isRegion) {
+          // Дополнительная проверка: если это не город внутри региона
+          // Проверяем компоненты адреса
+          const components = address?.Components || [];
+          const hasLocality = components.some((comp: any) => 
+            comp.kind === "locality" || comp.kind === "district"
+          );
+          
+          // Если нет компонента "locality" или "district", это регион, а не город
+          if (!hasLocality) {
+            return false;
+          }
+        }
+        
+        return true;
       });
 
       const newSuggestions: Suggestion[] = filteredObjects
@@ -769,7 +799,16 @@ const handleConstructorApplyFactory = (
     const volumeForCalculation = volumeSteps[volumeIndex];
     const volumeForDisplay = volumeSteps[volumeIndex];
     
-    const calculationResult = calculateShippingCost(fromCity, toCity, routeDistance, weightSteps[weightIndex], volumeForCalculation, transportType);
+    const calculationResult = calculateShippingCost(
+      fromCity, 
+      toCity, 
+      routeDistance, 
+      weightSteps[weightIndex], 
+      volumeForCalculation, 
+      transportType,
+      routeData.fromCoordinates,
+      routeData.toCoordinates
+    );
     if (!calculationResult) {
       toast.error("Ошибка расчёта. Проверьте введенные данные.");
       return;
@@ -1594,7 +1633,30 @@ const handleConstructorApplyFactory = (
                   }
                   
                   if (!routeDistance || routeDistance <= 0) {
-                    alert("⏳ Расстояние между городами ещё рассчитывается.\n\nПожалуйста, подождите несколько секунд и попробуйте снова.");
+                    // Проверяем, идет ли расчет маршрута
+                    if (routeData.isCalculatingRoute) {
+                      toast.info("⏳ Расстояние между городами ещё рассчитывается", {
+                        description: "Пожалуйста, подождите несколько секунд и попробуйте снова"
+                      });
+                    } else {
+                      // Если расчет завершился, но расстояние не получено - показываем предупреждение
+                      toast.error("Невозможно рассчитать маршрут автоматически", {
+                        description: (
+                          <div className="flex flex-col gap-2 py-1">
+                            <p className="text-sm">Для данного маршрута невозможно автоматически рассчитать стоимость.</p>
+                            <p className="text-sm font-semibold">Позвоните нашим логистам:</p>
+                            <a 
+                              href="tel:+79299882201" 
+                              className="text-sm text-blue-600 hover:text-blue-800 underline font-semibold"
+                            >
+                              📞 +7 (929) 988 22 01
+                            </a>
+                            <p className="text-xs text-gray-600">Вам рассчитают стоимость перевозки вручную</p>
+                          </div>
+                        ),
+                        duration: 10000
+                      });
+                    }
                     return;
                   }
                   
@@ -1761,7 +1823,9 @@ const handleConstructorApplyFactory = (
                         routeDistance!,
                         weight,
                         volume,
-                        transportType
+                        transportType,
+                        routeData.fromCoordinates,
+                        routeData.toCoordinates
                       );
                       
                       if (result && result.cost) {
@@ -2481,7 +2545,9 @@ const handleConstructorApplyFactory = (
                       routeDistance!,
                       weight,
                       volume,
-                      transportType
+                      transportType,
+                      routeData.fromCoordinates,
+                      routeData.toCoordinates
                     );
                     
                     if (result && result.cost) {
@@ -2657,7 +2723,9 @@ const handleConstructorApplyFactory = (
                       routeDistance!,
                       weight,
                       volume,
-                      transportType
+                      transportType,
+                      routeData.fromCoordinates,
+                      routeData.toCoordinates
                     );
                     
                     if (result && result.cost) {

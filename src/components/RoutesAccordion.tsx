@@ -195,7 +195,7 @@ const RoutesAccordionUI = ({
           >
             <AccordionTrigger className="hover:no-underline py-2">
               <div className="flex items-center justify-between w-full pr-3">
-                <div className="text-left md:text-left text-right w-full">
+                <div className="text-left w-full">
                   <p className="font-semibold md:text-base text-sm">{route.from} → {route.to}</p>
                 </div>
               </div>

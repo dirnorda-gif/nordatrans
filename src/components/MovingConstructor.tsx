@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import * as React from "react";
 import { Search, X, Plus, Minus, Package, Trash2, AlertTriangle, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ interface MovingConstructorProps {
   onClose: () => void;
   onApply: (totalVolume: number, recommendedTruck?: string, floorUtilization?: number, selectedItems?: SelectedItem[]) => void;
   initialVolume?: number;
+  initialSelectedItems?: SelectedItem[]; // Начальные выбранные предметы
 }
 
 // Экспортируем интерфейс для использования в других компонентах
@@ -35,14 +37,25 @@ export const MovingConstructor = ({
   onClose,
   onApply,
   initialVolume = 0,
+  initialSelectedItems = [],
 }: MovingConstructorProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof CATEGORIES | "all">("all");
-  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>(initialSelectedItems);
   const [showVisualizationModal, setShowVisualizationModal] = useState(false);
   
   // 📱 State для переключения между вкладками на мобильных
   const [mobileTab, setMobileTab] = useState<'items' | 'cart'>('items');
+  
+  // Устанавливаем начальные предметы при открытии модального окна
+  React.useEffect(() => {
+    if (isOpen && initialSelectedItems.length > 0) {
+      console.log('🔄 [MovingConstructor] Загрузка начальных предметов:', initialSelectedItems.length);
+      setSelectedItems(initialSelectedItems);
+      // Переключаемся на вкладку корзины, чтобы показать загруженные предметы
+      setMobileTab('cart');
+    }
+  }, [isOpen, initialSelectedItems]);
 
   // Поиск и фильтрация предметов
   const filteredItems = useMemo(() => {

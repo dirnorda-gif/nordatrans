@@ -37,7 +37,7 @@ interface Bitrix24LeadData {
     cargoPackaging?: string;
     palletCount?: string;
     cargoNature?: string;
-    // Вес одной палеты (для всех типов, если используется палетная логика)
+    // Вес одной палеты (для всех типов, если используется палетная логики)
     palletWeightPerKg?: string;
     // Продукты питания
     truckType?: string;
@@ -48,6 +48,10 @@ interface Bitrix24LeadData {
     otherPackaging?: string;
     otherPalletCount?: string;
     otherNature?: string;
+    // Новый калькулятор со стрелочными шагами
+    transportType?: string;
+    isConstructorUsed?: boolean;
+    constructorUrl?: string;
   };
 }
 
@@ -222,13 +226,14 @@ export const createBitrix24Lead = async (
     const yandexClientId = getYandexClientId();
 
     // Формируем подробный комментарий с расчётом (без Unicode символов для совместимости с Bitrix24)
-    const comment = `
+    let comment = `
 ===========================================
 ЗАЯВКА НА РАСЧЕТ СТОИМОСТИ ДОСТАВКИ
 ===========================================
 
 Откуда: ${removeCountryFromCity(data.fromCity)}
 Куда: ${removeCountryFromCity(data.toCity)}
+${data.additionalInfo?.transportType ? `Тип перевозки: ${data.additionalInfo.transportType}` : ''}
 Объём: ${data.volume} м³
 Вес: ${(data.weight / 1000).toFixed(1)} т
 
@@ -251,6 +256,52 @@ ${yandexClientId ? `\nЯндекс Метрика Client ID: ${yandexClientId}` 
 })}
 ===========================================
     `.trim();
+    
+    // Добавляем компактную информацию о конструкторе
+    console.log('🔍 [Bitrix24] ===== ПРОВЕРКА ДАННЫХ КОНСТРУКТОРА =====');
+    console.log('🔍 [Bitrix24] data.additionalInfo:', data.additionalInfo);
+    console.log('🔍 [Bitrix24] data.additionalInfo?.transportType:', data.additionalInfo?.transportType);
+    console.log('🔍 [Bitrix24] data.additionalInfo?.isConstructorUsed:', data.additionalInfo?.isConstructorUsed);
+    console.log('🔍 [Bitrix24] data.additionalInfo?.constructorUrl:', data.additionalInfo?.constructorUrl);
+    console.log('🔍 [Bitrix24] data.additionalInfo?.constructorItems (количество):', data.additionalInfo?.constructorItems?.length || 0);
+    
+    if (data.additionalInfo?.isConstructorUsed && data.additionalInfo?.constructorItems && data.additionalInfo.constructorItems.length > 0) {
+      console.log('✅ [Bitrix24] Добавляем КОМПАКТНУЮ информацию о конструкторе');
+      
+      comment += '\n\n===========================================';
+      comment += '\nОБЪЁМ РАССЧИТАН ЧЕРЕЗ КОНСТРУКТОР ПЕРЕЕЗДА';
+      comment += '\n===========================================\n';
+      
+      // Компактный список: Название Д×Ш×В см Хшт
+      data.additionalInfo.constructorItems.forEach((ci) => {
+        const item = ci.item;
+        comment += `\n${item.name} ${item.length}×${item.width}×${item.height} см ${ci.quantity}шт`;
+      });
+      
+      // Добавляем ссылку на конструктор
+      console.log('🔗 [Bitrix24] Проверка constructorUrl:', {
+        exists: !!data.additionalInfo.constructorUrl,
+        value: data.additionalInfo.constructorUrl,
+        type: typeof data.additionalInfo.constructorUrl,
+        length: data.additionalInfo.constructorUrl?.length
+      });
+      
+      if (data.additionalInfo.constructorUrl) {
+        comment += `\n\n🔗 Ссылка на расчёт: ${data.additionalInfo.constructorUrl}`;
+        comment += '\n(Менеджер может открыть для просмотра полного списка)';
+        console.log('✅ [Bitrix24] Ссылка добавлена в комментарий');
+      } else {
+        console.warn('⚠️ [Bitrix24] constructorUrl пустой, ссылка НЕ добавлена');
+      }
+      
+      console.log('✅ [Bitrix24] Компактная информация добавлена. Новая длина:', comment.length);
+    } else {
+      console.log('⚠️ [Bitrix24] Конструктор не использовался или нет данных');
+      console.log('⚠️ [Bitrix24] Причина:', {
+        isConstructorUsedFalse: !data.additionalInfo?.isConstructorUsed,
+        constructorItemsEmpty: !data.additionalInfo?.constructorItems || data.additionalInfo.constructorItems.length === 0
+      });
+    }
 
     // Очищаем названия городов от страны
     const cleanFromCity = removeCountryFromCity(data.fromCity);
@@ -260,6 +311,14 @@ ${yandexClientId ? `\nЯндекс Метрика Client ID: ${yandexClientId}` 
     console.log('   Откуда:', data.fromCity, '→', cleanFromCity);
     console.log('   Куда:', data.toCity, '→', cleanToCity);
 
+    // Логируем финальный комментарий
+    console.log('📝 [Bitrix24] ===== ФИНАЛЬНЫЙ КОММЕНТАРИЙ =====');
+    console.log('📝 [Bitrix24] Длина комментария:', comment.length);
+    console.log('📝 [Bitrix24] Первые 500 символов:', comment.substring(0, 500));
+    console.log('📝 [Bitrix24] Последние 500 символов:', comment.substring(Math.max(0, comment.length - 500)));
+    console.log('📝 [Bitrix24] Содержит "КОНСТРУКТОР":', comment.includes('КОНСТРУКТОР'));
+    console.log('📝 [Bitrix24] Содержит "ССЫЛКА":', comment.includes('ССЫЛКА'));
+    
     // Формируем данные для создания лида
     const leadFields: any = {
       TITLE: `Перевозка ${cleanFromCity} → ${cleanToCity} (${data.cost.toLocaleString('ru-RU')} ₽)`,
@@ -278,6 +337,13 @@ ${yandexClientId ? `\nЯндекс Метрика Client ID: ${yandexClientId}` 
       UF_CRM_1605030443: cleanFromCity, // Откуда
       UF_CRM_1605030456: cleanToCity,   // Куда
     };
+    
+    // Добавляем ссылку на конструктор в отдельное поле (если есть)
+    if (data.additionalInfo?.constructorUrl) {
+      // Передаём как строку с текстом (Bitrix24 сам распознает URL)
+      leadFields.UF_CRM_1763321505007 = `Выбор пользователя в конструкторе: ${data.additionalInfo.constructorUrl}`;
+      console.log('🔗 [Bitrix24] Ссылка на конструктор добавлена в поле UF_CRM_1763321505007:', leadFields.UF_CRM_1763321505007);
+    }
 
     // Добавляем UTM метки (стандартные поля Bitrix24)
     if (utmParams.utm_source) {
@@ -306,6 +372,7 @@ ${yandexClientId ? `\nЯндекс Метрика Client ID: ${yandexClientId}` 
     console.log('📞 Телефон:', data.phone);
     console.log('📍 Откуда (UF_CRM_1605030443):', leadFields.UF_CRM_1605030443);
     console.log('📍 Куда (UF_CRM_1605030456):', leadFields.UF_CRM_1605030456);
+    console.log('🔗 Ссылка на конструктор (UF_CRM_1763321505007):', leadFields.UF_CRM_1763321505007 || 'не указано');
     console.log('📊 Yandex Client ID (UF_CRM_1759567366):', leadFields.UF_CRM_1759567366);
     console.log('📊 UTM метки:', {
       source: leadFields.UTM_SOURCE || 'не указано',
@@ -315,6 +382,15 @@ ${yandexClientId ? `\nЯндекс Метрика Client ID: ${yandexClientId}` 
       term: leadFields.UTM_TERM || 'не указано'
     });
     console.log('💬 Комментарий (первые 200 символов):', comment.substring(0, 200) + '...');
+
+    // ===== ФИНАЛЬНАЯ ПРОВЕРКА ПЕРЕД ОТПРАВКОЙ =====
+    console.log('🚀 [Bitrix24] ========== ФИНАЛЬНАЯ ПРОВЕРКА ==========');
+    console.log('🚀 [Bitrix24] leadFields.COMMENTS (длина):', leadFields.COMMENTS.length);
+    console.log('🚀 [Bitrix24] leadFields.COMMENTS (полный текст):');
+    console.log(leadFields.COMMENTS);
+    console.log('🚀 [Bitrix24] Содержит "КОНСТРУКТОР":', leadFields.COMMENTS.includes('КОНСТРУКТОР'));
+    console.log('🚀 [Bitrix24] Содержит "🔗":', leadFields.COMMENTS.includes('🔗'));
+    console.log('🚀 [Bitrix24] ========================================');
 
     // Отправляем запрос в Bitrix24
     const response = await fetch(`${webhookUrl}crm.lead.add.json`, {

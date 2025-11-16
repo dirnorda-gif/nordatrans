@@ -1,9 +1,9 @@
 import Header from "@/components/Header";
 import { BannerUp } from "@/components/BannerUp";
 import Footer from "@/components/Footer";
-import { NewShippingCalculatorForm } from "@/components/NewShippingCalculatorForm";
+import Signpost from "@/components/Signpost";
 
-console.log('📄 [Test Page] Загрузка тестовой страницы с новым калькулятором');
+console.log('📄 [Test Page] Загрузка тестовой страницы');
 
 const Test = () => {
   console.log('🎨 [Test Page] Рендер страницы');
@@ -12,29 +12,38 @@ const Test = () => {
     <div className="min-h-screen bg-[#f0f3f5]">
       <Header />
       <BannerUp />
+
+      {/* Центрированный ансамбль 25% / 75% */}
+      <div className="flex justify-center mt-12">
+        <div className="inline-flex items-center px-[50px] py-[100px]">
+          {/* Левая и правая колонки ниже */}
+          {/* Левая колонка 25% (статичная, без вертикального центрирования) */}
+          <div className="w-1/4 flex items-center flex-shrink-0">
+            <div
+              className="bg-[#7a9ec4] text-white font-semibold text-xs py-[6px] flex items-center justify-center"
+              style={{ width: "192px" }}
+            >
+              Параметры
+            </div>
+          </div>
+
+          {/* Правая колонка 75% */}
+          <div className="w-3/4 flex flex-col items-center">
+            {/* Стрелки */}
+            <div className="flex">
+              {["Шаг 1", "Шаг 2", "Шаг 3", "Расчёт стоимости"].map((t, i) => (
+                <div key={t} className={i === 0 ? undefined : "-ml-[10px]"}>
+                  <Signpost text={t} active={i === 0} />
+                </div>
+              ))}
+            </div>
+
+            
+          </div>
+        </div>
+      </div>
       
-      <main className="container mx-auto px-6 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🧪 Тестовая страница
-          </h1>
-          <p className="text-gray-600">
-            Новый модульный калькулятор перевозок (в разработке)
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Левая колонка - калькулятор */}
-          <div>
-            <NewShippingCalculatorForm />
-          </div>
-          
-          {/* Правая колонка - пустая (для будущих элементов) */}
-          <div className="hidden lg:block">
-            {/* Здесь можно добавить популярные маршруты или другую информацию */}
-          </div>
-        </div>
-      </main>
+      {/* Основного текстового заголовка больше нет – структура страницы теперь строго двухколоночная. */}
       
       <Footer />
     </div>

@@ -55,10 +55,6 @@ interface FormContextType {
   constructorItems?: SelectedItem[];
   constructorUrl?: string;
   isConstructorUsed: boolean;
-  // Упаковка для коммерческих грузов
-  packaging: string; // "pallets" | "boxes" | "bulk" | ""
-  palletCount: string;
-  palletWeight: string;
 }
 
 const FormContext = createContext<FormContextType>({
@@ -80,9 +76,6 @@ const FormContext = createContext<FormContextType>({
   constructorItems: undefined,
   constructorUrl: undefined,
   isConstructorUsed: false,
-  packaging: "",
-  palletCount: "",
-  palletWeight: "",
 });
 
 function useFormContext() {
@@ -113,9 +106,6 @@ export function NewStepCalculator() {
   const [constructorItems, setConstructorItems] = useState<SelectedItem[] | undefined>(undefined);
   const [constructorUrl, setConstructorUrl] = useState<string | undefined>(undefined);
   const [isConstructorUsed, setIsConstructorUsed] = useState(false);
-  const [packaging, setPackaging] = useState("");
-  const [palletCount, setPalletCount] = useState("");
-  const [palletWeight, setPalletWeight] = useState("");
 
   // Загрузка Яндекс.Карт
   React.useEffect(() => {
@@ -165,20 +155,16 @@ export function NewStepCalculator() {
     setConstructorUrl: (url?: string) => void;
     setIsConstructorUsed: (used: boolean) => void;
     setShowPrice: (show: boolean) => void;
-    setPackaging: (p: string) => void;
-    setPalletCount: (c: string) => void;
-    setPalletWeight: (w: string) => void;
   } = {
     from, to, fromCoords, toCoords, errors, activeStep, transportType,
     volumeIndex, weightIndex, contactMethod, userContact, cargoErrors,
     estimatedPrice, distance, deliveryDays, isSubmitting, showPrice,
     constructorItems, constructorUrl, isConstructorUsed,
-    packaging, palletCount, palletWeight,
     setFrom, setFromCoords, setTo, setToCoords, setErrors, setActiveStep,
     setTransportType, setVolumeIndex, setWeightIndex, setContactMethod,
     setUserContact, setCargoErrors, setEstimatedPrice, setDistance,
     setDeliveryDays, setIsSubmitting, setShowPrice, setConstructorItems, setConstructorUrl,
-    setIsConstructorUsed, setPackaging, setPalletCount, setPalletWeight,
+    setIsConstructorUsed,
   };
 
   return (
@@ -209,15 +195,13 @@ export function NewStepCalculator() {
 // ============================================================================
 function ParametersPanel() {
   const ctx = useFormContext() as any;
-  const { from, fromCoords, to, toCoords, errors, activeStep, transportType, volumeIndex, weightIndex, cargoErrors, estimatedPrice, distance, deliveryDays, isConstructorUsed, showPrice, packaging, palletCount, palletWeight } = ctx;
+  const { from, fromCoords, to, toCoords, errors, activeStep, transportType, volumeIndex, weightIndex, cargoErrors, estimatedPrice, distance, deliveryDays, isConstructorUsed, showPrice } = ctx;
   const hasRoute = from && to && fromCoords && toCoords && !errors.from && !errors.to;
   const hasCargoErrors = cargoErrors && (cargoErrors.volume || cargoErrors.weight);
   const isMoving = transportType === "Домашний переезд";
   
-  // Расчёт объёма для палет (1.2м × 0.8м × 0.15м = 0.144 м³)
-  const palletVolume = 0.144;
-  const totalPalletVolume = palletCount && palletWeight ? parseFloat(palletCount) * palletVolume : 0;
-  const totalPalletWeight = palletCount && palletWeight ? parseFloat(palletCount) * parseFloat(palletWeight) : 0;
+  // Показываем спиннер, если маршрут заполнен, но цена ещё не показана
+  const isCalculating = hasRoute && !showPrice;
 
   return (
     <div className="w-[192px] flex flex-col">
@@ -248,62 +232,52 @@ function ParametersPanel() {
           <div className="text-red-600 text-xs">⚠️ Выберите значения объёма и веса</div>
         )}
         
-        {activeStep >= 1 && !hasCargoErrors && (
+        {activeStep >= 1 && !hasCargoErrors && volumeIndex > 0 && (
           <>
             {isMoving ? (
-              // Домашний переезд
-              volumeIndex > 0 && (
-                <>
-                  <div className="text-gray-800 text-xs">
-                    Объём: {formatVolume(VOLUME_STEPS_MOVING[volumeIndex])}
-                  </div>
-                  {isConstructorUsed && (
-                    <div className="text-blue-600 text-xs font-medium">
-                      🏗️ Через конструктор
-                    </div>
-                  )}
-                </>
-              )
-            ) : (
-              // Коммерческие грузы
               <>
-                {packaging && (
-                  <div className="text-gray-800 text-xs">
-                    Упаковка: {packaging === "pallets" ? "На палетах" : packaging === "boxes" ? "В коробках" : "Россыпью"}
+                <div className="text-gray-800 text-xs">
+                  Объём: {formatVolume(VOLUME_STEPS_MOVING[volumeIndex])}
+                </div>
+                {isConstructorUsed && (
+                  <div className="text-blue-600 text-xs font-medium">
+                    🏗️ Через конструктор
                   </div>
                 )}
-                
-                {packaging === "pallets" && palletCount && palletWeight ? (
-                  // Палеты
-                  <>
-                    <div className="text-gray-800 text-xs">Кол-во палет: {palletCount}</div>
-                    <div className="text-gray-800 text-xs">Вес палеты: {palletWeight} кг</div>
-                    <div className="text-gray-800 text-xs">Объём: {totalPalletVolume.toFixed(2)} м³</div>
-                    <div className="text-gray-800 text-xs">Общий вес: {(totalPalletWeight / 1000).toFixed(1)} т</div>
-                  </>
-                ) : (
-                  // Коробки/россыпь
-                  <>
-                    {volumeIndex > 0 && (
-                      <div className="text-gray-800 text-xs">Объём: {formatVolume(VOLUME_STEPS_COMMERCIAL[volumeIndex])}</div>
-                    )}
-                    {weightIndex > 0 && (
-                      <div className="text-gray-800 text-xs">Вес: {formatWeight(WEIGHT_STEPS_COMMERCIAL[weightIndex])}</div>
-                    )}
-                  </>
+              </>
+            ) : (
+              <>
+                <div className="text-gray-800 text-xs">Объём: {formatVolume(VOLUME_STEPS_COMMERCIAL[volumeIndex])}</div>
+                {weightIndex > 0 && (
+                  <div className="text-gray-800 text-xs">Вес: {formatWeight(WEIGHT_STEPS_COMMERCIAL[weightIndex])}</div>
                 )}
               </>
             )}
           </>
         )}
         
-        {/* Блок стоимости */}
+        {/* Блок стоимости с анимацией */}
         <div className="mt-3 pt-3 border-t border-gray-300">
           <div className="text-gray-700 text-xs font-medium mb-2 text-center">
             Предварительная стоимость:
           </div>
-          <div className="text-[#083cb5] text-2xl font-bold text-center mb-3">
-            {estimatedPrice ? `${estimatedPrice.toLocaleString('ru-RU')} ₽` : '0 ₽'}
+          
+          {/* Контейнер с ценой и оверлеем */}
+          <div className="relative bg-white rounded-lg p-3 mb-3">
+            {/* Базовая цена (всегда видна снизу) */}
+            <div className="text-[#083cb5] text-2xl font-bold text-center">
+              {estimatedPrice ? `${estimatedPrice.toLocaleString('ru-RU')} ₽` : '0 ₽'}
+            </div>
+            
+            {/* Оверлей с спиннером (показывается при расчёте) */}
+            {isCalculating && (
+              <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#083cb5] mb-2"></div>
+                <div className="text-[#083cb5] text-xs font-medium">
+                  Стоимость рассчитывается...
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Расстояние и срок доставки (показываются только после расчёта) */}
@@ -490,60 +464,23 @@ function Step2Cargo() {
   const ctx = useFormContext() as any;
   const { 
     transportType, volumeIndex, weightIndex, cargoErrors, isConstructorUsed,
-    packaging, palletCount, palletWeight,
     setVolumeIndex, setWeightIndex, setActiveStep, setCargoErrors,
-    setConstructorItems, setConstructorUrl, setIsConstructorUsed,
-    setPackaging, setPalletCount, setPalletWeight
+    setConstructorItems, setConstructorUrl, setIsConstructorUsed
   } = ctx;
   
   const [isConstructorOpen, setIsConstructorOpen] = useState(false);
   const isMoving = transportType === "Домашний переезд";
 
   const handleNext = () => {
-    console.log('🔍 [Step2Cargo] Валидация:', {
-      isMoving,
-      packaging,
-      palletCount,
-      palletWeight,
-      volumeIndex,
-      weightIndex
-    });
-
     const errors: { volume?: boolean; weight?: boolean } = {};
     
-    if (isMoving) {
-      // Домашний переезд: только объём
-      if (volumeIndex === 0) errors.volume = true;
-    } else {
-      // Коммерческие грузы
-      if (packaging === "pallets") {
-        // Для палет: проверяем кол-во и вес
-        if (!palletCount || parseInt(palletCount) === 0) {
-          errors.volume = true;
-          console.log('⚠️ [Step2Cargo] Не указано кол-во палет');
-        }
-        if (!palletWeight || parseInt(palletWeight) === 0) {
-          errors.weight = true;
-          console.log('⚠️ [Step2Cargo] Не указан вес палеты');
-        }
-      } else if (packaging === "boxes" || packaging === "bulk") {
-        // Для коробок/россыпи: проверяем ползунки
-        if (volumeIndex === 0) errors.volume = true;
-        if (weightIndex === 0) errors.weight = true;
-      } else {
-        // Упаковка не выбрана
-        errors.volume = true;
-        console.log('⚠️ [Step2Cargo] Упаковка не выбрана');
-      }
-    }
+    if (volumeIndex === 0) errors.volume = true;
+    if (!isMoving && weightIndex === 0) errors.weight = true;
     
     setCargoErrors(Object.keys(errors).length > 0 ? errors : undefined);
     
     if (Object.keys(errors).length === 0) {
-      console.log('✅ [Step2Cargo] Валидация пройдена, переход на шаг 3');
       setActiveStep(2);
-    } else {
-      console.log('❌ [Step2Cargo] Валидация не пройдена:', errors);
     }
   };
   
@@ -606,116 +543,32 @@ function Step2Cargo() {
             </Button>
           </>
         ) : (
-          // Коммерческие грузы: сначала упаковка, потом ползунки или поля палет
-          <>
-            {/* Выбор упаковки */}
-            <div className="w-full">
-              <label className="text-sm font-medium text-[#050b18] mb-3 block">
-                Как упакован груз?
-              </label>
-              <div className="flex gap-6 justify-center">
-                {[
-                  { id: "pallets", label: "На палетах" },
-                  { id: "boxes", label: "В коробках" },
-                  { id: "bulk", label: "Россыпью" },
-                ].map((pack) => (
-                  <label
-                    key={pack.id}
-                    className="flex items-center gap-2 cursor-pointer"
-                    onClick={() => {
-                      console.log(`📦 [Step2Cargo] Выбрана упаковка: ${pack.label}`);
-                      setPackaging(pack.id);
-                    }}
-                  >
-                    <Checkbox
-                      checked={packaging === pack.id}
-                      onCheckedChange={() => setPackaging(pack.id)}
-                      className="border-[#083cb5]"
-                    />
-                    <span className="text-[#050b18] text-sm font-medium">{pack.label}</span>
-                  </label>
-                ))}
-              </div>
+          <div className="w-full flex gap-4">
+            <div className={`flex-1 ${cargoErrors?.volume ? '[&_label]:!text-red-600' : '[&_label]:!text-gray-800'}`}>
+              <VolumeSlider
+                value={volumeIndex}
+                onChange={(val) => {
+                  setVolumeIndex(val);
+                  if (val > 0 && cargoErrors?.volume) {
+                    setCargoErrors({ ...cargoErrors, volume: false });
+                  }
+                }}
+                steps={VOLUME_STEPS_COMMERCIAL}
+              />
             </div>
-
-            {/* Поля для палет (если выбрано "На палетах") */}
-            {packaging === "pallets" && (
-              <div className="w-full flex gap-4 justify-center items-end">
-                <div className="w-[168px]">
-                  <label className="text-sm font-medium text-[#050b18] mb-2 block">
-                    Кол-во палет
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="9999"
-                    value={palletCount}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val.length <= 4) {
-                        console.log(`📦 [Step2Cargo] Кол-во палет: ${val}`);
-                        setPalletCount(val);
-                      }
-                    }}
-                    placeholder="0"
-                    className="w-full h-10 px-3 rounded-md border border-gray-300 text-[#050b18] placeholder:text-white/60 bg-white"
-                  />
-                </div>
-                <div className="w-[168px]">
-                  <label className="text-sm font-medium text-[#050b18] mb-2 block">
-                    Вес одной палеты (кг)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="9999"
-                    value={palletWeight}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val.length <= 4) {
-                        console.log(`📦 [Step2Cargo] Вес палеты: ${val} кг`);
-                        setPalletWeight(val);
-                      }
-                    }}
-                    placeholder="0"
-                    className="w-full h-10 px-3 rounded-md border border-gray-300 text-[#050b18] placeholder:text-white/60 bg-white"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Ползунки (если выбрано "В коробках" или "Россыпью") */}
-            {(packaging === "boxes" || packaging === "bulk") && (
-              <div className="w-full flex gap-4">
-                <div className={`flex-1 ${cargoErrors?.volume ? '[&_label]:!text-red-600' : '[&_label]:!text-gray-800'}`}>
-                  <VolumeSlider
-                    value={volumeIndex}
-                    onChange={(val) => {
-                      console.log(`📦 [Step2Cargo] Объём: ${VOLUME_STEPS_COMMERCIAL[val]} м³`);
-                      setVolumeIndex(val);
-                      if (val > 0 && cargoErrors?.volume) {
-                        setCargoErrors({ ...cargoErrors, volume: false });
-                      }
-                    }}
-                    steps={VOLUME_STEPS_COMMERCIAL}
-                  />
-                </div>
-                <div className={`flex-1 ${cargoErrors?.weight ? '[&_label]:!text-red-600' : '[&_label]:!text-gray-800'}`}>
-                  <WeightSlider
-                    value={weightIndex}
-                    onChange={(val) => {
-                      console.log(`📦 [Step2Cargo] Вес: ${WEIGHT_STEPS_COMMERCIAL[val]} кг`);
-                      setWeightIndex(val);
-                      if (val > 0 && cargoErrors?.weight) {
-                        setCargoErrors({ ...cargoErrors, weight: false });
-                      }
-                    }}
-                    steps={WEIGHT_STEPS_COMMERCIAL}
-                  />
-                </div>
-              </div>
-            )}
-          </>
+            <div className={`flex-1 ${cargoErrors?.weight ? '[&_label]:!text-red-600' : '[&_label]:!text-gray-800'}`}>
+              <WeightSlider
+                value={weightIndex}
+                onChange={(val) => {
+                  setWeightIndex(val);
+                  if (val > 0 && cargoErrors?.weight) {
+                    setCargoErrors({ ...cargoErrors, weight: false });
+                  }
+                }}
+                steps={WEIGHT_STEPS_COMMERCIAL}
+              />
+            </div>
+          </div>
         )}
 
         <Button className="px-10" onClick={handleNext}>
@@ -749,7 +602,7 @@ function Step3Contacts() {
     <div className="mt-[55px] px-[40px] flex flex-col items-center gap-6">
       <div className="w-full">
         <div className="text-[#050b18] text-center mb-4 font-medium">
-          Для получения стоимости введите свой номер телефона или WhatsApp
+          Выберите удобный способ получения стоимости перевозки
         </div>
         
         <ContactMethodInput
@@ -776,20 +629,10 @@ function Step4Calculate() {
     contactMethod, userContact,
     isSubmitting, estimatedPrice,
     constructorItems, constructorUrl, isConstructorUsed,
-    packaging, palletCount, palletWeight,
-    setIsSubmitting, setEstimatedPrice, setDistance, setDeliveryDays, setShowPrice
+    setIsSubmitting, setEstimatedPrice, setDistance, setDeliveryDays
   } = ctx;
   
   const isMoving = transportType === "Домашний переезд";
-  
-  // Расчёт объёма и веса для палет
-  const palletVolume = 0.144; // 1.2м × 0.8м × 0.15м
-  const totalPalletVolume = packaging === "pallets" && palletCount && palletWeight 
-    ? parseFloat(palletCount) * palletVolume 
-    : 0;
-  const totalPalletWeight = packaging === "pallets" && palletCount && palletWeight 
-    ? parseFloat(palletCount) * parseFloat(palletWeight) 
-    : 0;
   
   // Флаг для предотвращения повторной отправки
   const hasSubmitted = React.useRef(false);
@@ -823,32 +666,11 @@ function Step4Calculate() {
         const formattedDays = formatDeliveryDays(days);
         setDeliveryDays(formattedDays);
 
-        // Определяем объём и вес в зависимости от типа перевозки и упаковки
-        let volume: number;
-        let weight: number;
-        
-        if (isMoving) {
-          // Домашний переезд
-          volume = VOLUME_STEPS_MOVING[volumeIndex];
-          weight = 0;
-        } else if (packaging === "pallets") {
-          // Коммерческие грузы на палетах
-          volume = totalPalletVolume;
-          weight = totalPalletWeight;
-        } else {
-          // Коммерческие грузы в коробках/россыпью
-          volume = VOLUME_STEPS_COMMERCIAL[volumeIndex];
-          weight = WEIGHT_STEPS_COMMERCIAL[weightIndex];
-        }
+        const volume = isMoving ? VOLUME_STEPS_MOVING[volumeIndex] : VOLUME_STEPS_COMMERCIAL[volumeIndex];
+        const weight = isMoving ? 0 : WEIGHT_STEPS_COMMERCIAL[weightIndex];
         
         console.log('💰 [Step4Calculate] Параметры груза:', {
-          transportType, 
-          packaging,
-          volume, 
-          weight, 
-          isConstructorUsed,
-          palletCount,
-          palletWeight,
+          transportType, volume, weight, isConstructorUsed,
           constructorItemsCount: constructorItems?.length || 0,
           constructorUrl
         });
@@ -889,11 +711,7 @@ function Step4Calculate() {
             transportType: transportType,
             isConstructorUsed: isConstructorUsed,
             constructorUrl: constructorUrl,
-            constructorItems: constructorItems,
-            // Данные упаковки для коммерческих грузов
-            packaging: !isMoving ? packaging : undefined,
-            newPalletCount: packaging === "pallets" ? palletCount : undefined,
-            newPalletWeight: packaging === "pallets" ? palletWeight : undefined,
+            constructorItems: constructorItems
           }
         };
         
@@ -907,7 +725,6 @@ function Step4Calculate() {
         if (bitrixResult.success) {
           console.log(`✅ [Step4Calculate] Заявка отправлена! Lead ID: ${bitrixResult.leadId}`);
           toast.success("Заявка успешно отправлена!");
-          setShowPrice(true);
         } else {
           console.error(`❌ [Step4Calculate] Ошибка Bitrix24: ${bitrixResult.error}`);
           toast.error(`Ошибка при отправке: ${bitrixResult.error}`);

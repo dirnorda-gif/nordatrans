@@ -52,6 +52,10 @@ interface Bitrix24LeadData {
     transportType?: string;
     isConstructorUsed?: boolean;
     constructorUrl?: string;
+    // Упаковка для коммерческих грузов (новый калькулятор)
+    packaging?: string; // "pallets" | "boxes" | "bulk"
+    newPalletCount?: string;
+    newPalletWeight?: string;
   };
 }
 
@@ -226,6 +230,22 @@ export const createBitrix24Lead = async (
     const yandexClientId = getYandexClientId();
 
     // Формируем подробный комментарий с расчётом (без Unicode символов для совместимости с Bitrix24)
+    // Формируем строку упаковки
+    let packagingStr = '';
+    if (data.additionalInfo?.packaging) {
+      const packagingNames: Record<string, string> = {
+        'pallets': 'На палетах',
+        'boxes': 'В коробках',
+        'bulk': 'Россыпью'
+      };
+      packagingStr = `Упаковка: ${packagingNames[data.additionalInfo.packaging] || data.additionalInfo.packaging}`;
+      
+      if (data.additionalInfo.packaging === 'pallets' && data.additionalInfo.newPalletCount && data.additionalInfo.newPalletWeight) {
+        packagingStr += `\nКол-во палет: ${data.additionalInfo.newPalletCount}`;
+        packagingStr += `\nВес одной палеты: ${data.additionalInfo.newPalletWeight} кг`;
+      }
+    }
+
     let comment = `
 ===========================================
 ЗАЯВКА НА РАСЧЕТ СТОИМОСТИ ДОСТАВКИ
@@ -234,7 +254,7 @@ export const createBitrix24Lead = async (
 Откуда: ${removeCountryFromCity(data.fromCity)}
 Куда: ${removeCountryFromCity(data.toCity)}
 ${data.additionalInfo?.transportType ? `Тип перевозки: ${data.additionalInfo.transportType}` : ''}
-Объём: ${data.volume} м³
+${packagingStr ? packagingStr + '\n' : ''}Объём: ${data.volume} м³
 Вес: ${(data.weight / 1000).toFixed(1)} т
 
 Предварительная стоимость: ${data.cost.toLocaleString('ru-RU')} руб.
@@ -340,9 +360,8 @@ ${yandexClientId ? `\nЯндекс Метрика Client ID: ${yandexClientId}` 
     
     // Добавляем ссылку на конструктор в отдельное поле (если есть)
     if (data.additionalInfo?.constructorUrl) {
-      // Передаём как строку с текстом (Bitrix24 сам распознает URL)
-      leadFields.UF_CRM_1763321505007 = `Выбор пользователя в конструкторе: ${data.additionalInfo.constructorUrl}`;
-      console.log('🔗 [Bitrix24] Ссылка на конструктор добавлена в поле UF_CRM_1763321505007:', leadFields.UF_CRM_1763321505007);
+      leadFields.UF_CRM_1763321505007 = data.additionalInfo.constructorUrl; // Ссылка на конструктор переезда
+      console.log('🔗 [Bitrix24] Ссылка на конструктор добавлена в поле UF_CRM_1763321505007:', data.additionalInfo.constructorUrl);
     }
 
     // Добавляем UTM метки (стандартные поля Bitrix24)

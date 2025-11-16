@@ -1,5 +1,5 @@
 // src/components/calculator/inputs/ContactMethodInput.tsx
-// Переиспользуемый компонент для выбора способа связи (WhatsApp или Звонок)
+// Переиспользуемый компонент для выбора способа связи (WhatsApp или Телефон)
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -96,7 +96,7 @@ export function ContactMethodInput({
             }}
           >
             <Phone className="w-4 h-4 mr-1" />
-            Звонок
+            Телефон
           </Button>
         )}
 

@@ -12,17 +12,17 @@ export default function Signpost({ text, active = false }: SignpostProps) {
     >
       <p>{text}</p>
       <style>{`
-        .signpost2-right {
-          background-color: #c8d4e0; /* default grey */
-          --n: 25px;
-          clip-path: polygon(0 0, calc(100% - var(--n)) 0, 100% 50%, calc(100% - var(--n)) 100%, 0 100%, var(--n) 50%);
-          shape-outside: polygon(0 0, calc(100% - var(--n)) 0, 100% 50%, calc(100% - var(--n)) 100%, 0 100%, var(--n) 50%);
-          padding: 6px 0;
-          width: 12em;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
+            .signpost2-right {
+              background-color: #c8d4e0; /* default grey */
+              --n: 25px;
+              clip-path: polygon(0 0, calc(100% - var(--n)) 0, 100% 50%, calc(100% - var(--n)) 100%, 0 100%, var(--n) 50%);
+              shape-outside: polygon(0 0, calc(100% - var(--n)) 0, 100% 50%, calc(100% - var(--n)) 100%, 0 100%, var(--n) 50%);
+              padding: 6px 0;
+              width: 200px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
         .signpost2-right p {
           font-family: 'Oswald', sans-serif;
           font-size: 12px;

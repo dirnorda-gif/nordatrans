@@ -24,6 +24,7 @@ interface Bitrix24LeadData {
   cost: number;
   truckCapacity: string;
   contactMethod: 'phone' | 'whatsapp';
+  deliveryDays?: string; // Срок доставки
   additionalInfo?: {
     cargoType?: string;
     direction?: string;
@@ -226,21 +227,17 @@ export const createBitrix24Lead = async (
 ЗАЯВКА НА РАСЧЕТ СТОИМОСТИ ДОСТАВКИ
 ===========================================
 
-МАРШРУТ:
 Откуда: ${removeCountryFromCity(data.fromCity)}
 Куда: ${removeCountryFromCity(data.toCity)}
-Расстояние: ${data.distance} км
-Направление: ${data.additionalInfo?.direction || 'Не указано'}
-${data.additionalInfo?.cargoType ? `\nТИП ГРУЗА: ${data.additionalInfo.cargoType}` : ''}${formatCargoDetails(data)}
+Объём: ${data.volume} м³
+Вес: ${(data.weight / 1000).toFixed(1)} т
 
-СТОИМОСТЬ ПЕРЕВОЗКИ:
-ИТОГО: ${data.cost.toLocaleString('ru-RU')} руб.
-${data.additionalInfo?.costPerKm ? `Тариф за км: ${data.additionalInfo.costPerKm.toFixed(2)} руб/км` : ''}
-${data.additionalInfo?.minimumApplied ? 'Применена минимальная стоимость (7 500 руб)' : ''}
+Предварительная стоимость: ${data.cost.toLocaleString('ru-RU')} руб.
+Расстояние: ${Math.round(data.distance)} км
+${data.deliveryDays ? `Срок доставки: ${data.deliveryDays}` : ''}
 
-КОНТАКТ КЛИЕНТА:
 Способ связи: ${data.contactMethod === 'phone' ? 'Телефон' : 'WhatsApp'}
-Номер: ${data.phone}
+Рекомендуемый транспорт: ${data.truckCapacity}
 ${yandexClientId ? `\nЯндекс Метрика Client ID: ${yandexClientId}` : ''}
 
 ===========================================

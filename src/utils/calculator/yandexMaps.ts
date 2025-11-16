@@ -133,17 +133,18 @@ export const calculateRoute = async (
         
         const activeRoute = multiRoute.getActiveRoute();
         if (activeRoute) {
-          const distance = activeRoute.properties.get("distance").value;
-          const duration = activeRoute.properties.get("duration").value;
+          const distanceMeters = activeRoute.properties.get("distance").value;
+          const durationSeconds = activeRoute.properties.get("duration").value;
 
-          const distanceKm = Math.round(distance / 1000);
-          const durationHours = Math.round(duration / 3600);
+          const distanceKm = Math.round(distanceMeters / 1000);
+          const durationHours = Math.round(durationSeconds / 3600);
 
           console.log('📊 [calculateRoute] Результаты:');
-          console.log('  Расстояние:', distanceKm, 'км');
-          console.log('  Время в пути:', durationHours, 'ч');
+          console.log('  Расстояние:', distanceMeters, 'м (', distanceKm, 'км)');
+          console.log('  Время в пути:', durationSeconds, 'с (', durationHours, 'ч)');
 
-          resolve({ distance: distanceKm, duration: durationHours });
+          // Возвращаем расстояние в метрах, а не в километрах!
+          resolve({ distance: distanceMeters, duration: durationSeconds });
         } else {
           console.error("❌ [calculateRoute] Активный маршрут не найден");
           resolve(null);

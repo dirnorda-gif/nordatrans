@@ -1,31 +1,42 @@
-import { Users } from "lucide-react";
-import { StatCard } from "@/components/StatCard";
+import Header from "@/components/Header";
+import { BannerUp } from "@/components/BannerUp";
+import Footer from "@/components/Footer";
+import { NewShippingCalculatorForm } from "@/components/NewShippingCalculatorForm";
+
+console.log('📄 [Test Page] Загрузка тестовой страницы с новым калькулятором');
 
 const Test = () => {
+  console.log('🎨 [Test Page] Рендер страницы');
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-8 text-gray-700">
-          Тестовая страница - Визуальный блок
-        </h1>
+    <div className="min-h-screen bg-[#f0f3f5]">
+      <Header />
+      <BannerUp />
+      
+      <main className="container mx-auto px-6 py-12">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            🧪 Тестовая страница
+          </h1>
+          <p className="text-gray-600">
+            Новый модульный калькулятор перевозок (в разработке)
+          </p>
+        </div>
         
-        {/* Одна карточка для работы над дизайном */}
-        <StatCard
-          title="Довольных клиентов"
-          value="9,998"
-          suffix="+"
-          trend={{
-            value: 15,
-            isPositive: true,
-          }}
-          icon={Users}
-          gradient={{
-            from: "#083cb5",
-            to: "#405b9a",
-          }}
-          maskColor="#f9fafb"
-        />
-      </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Левая колонка - калькулятор */}
+          <div>
+            <NewShippingCalculatorForm />
+          </div>
+          
+          {/* Правая колонка - пустая (для будущих элементов) */}
+          <div className="hidden lg:block">
+            {/* Здесь можно добавить популярные маршруты или другую информацию */}
+          </div>
+        </div>
+      </main>
+      
+      <Footer />
     </div>
   );
 };

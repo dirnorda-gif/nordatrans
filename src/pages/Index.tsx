@@ -9,6 +9,11 @@ import { ShippingCalculatorForm } from "@/components/ShippingCalculatorForm";
 import { useYandexMetrika } from "@/hooks/useYandexMetrika";
 import { BannerUp } from "@/components/BannerUp";
 import { BrandCard } from "@/components/BrandCard";
+import { RoutesAccordion } from "@/components/RoutesAccordion";
+import { CouponSection } from "@/components/CouponSection";
+import Reviews from "@/components/Reviews";
+import ReviewsMobile from "@/components/ReviewsMobile";
+import { FlipProblemsSection } from "@/components/FlipProblemsSection";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -71,16 +76,90 @@ const Index = () => {
       <YandexMetrika />
       <Header />
       
-      {/* Hero Section */}
+      {/* Hero Section - Desktop Only */}
       <BannerUp 
-        className="hidden md:block w-full h-[280px]" 
+        className="hidden lg:block w-full h-[280px]" 
         overlayType="white"
         backgroundImage="/Lucid_Origin_Photorealistic_169_wallpaper_a_white_cab_Scania_s_3.webp"
         backgroundPosition="center 50%"
       />
 
-      {/* Work Fast Section */}
-      <section className="w-full pb-16 bg-[#f0f3f5]" style={{ paddingTop: 'calc(4rem - 15px)' }}>
+      {/* Mobile: 1. О компании НОРДА ТРАНС */}
+      <section className="lg:hidden w-full py-8 bg-background">
+        <div className="container mx-auto px-6">
+          <h2 className="text-2xl font-bold mb-4" style={{color: '#083cb5'}}>
+            О компании НОРДА ТРАНС
+          </h2>
+          
+          <div className="space-y-3 text-base leading-relaxed text-muted-foreground">
+            <p>
+              Автомобильные грузоперевозки — основная специализация нашей компании. 
+              Мы осуществляем доставку любого груза в любую точку быстро, недорого и оперативно!
+            </p>
+            
+            <p>
+              Благодаря оптимизации внутренних процессов мы достигли золотой середины, смогли сделать так, 
+              чтобы наши цены были значительно ниже, чем у конкурентов, 
+              а качество услуг на самом высшем уровне!
+            </p>
+            
+            <p>
+              Подтверждением этого служит хороший рейтинг и множество положительных отзывов 
+              Яндекс и самой главной бирже перевозчиков России и СНГ 
+              Авто Транс Инфо.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3">
+            <Button 
+              size="lg"
+              className="w-full"
+              style={{backgroundColor: '#083cb5'}}
+              onClick={() => navigate('/tarify')}
+            >
+              Смотреть тарифы
+            </Button>
+            <Button 
+              size="lg"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                window.location.href = 'tel:+74994440651';
+              }}
+            >
+              <Phone className="w-5 h-5 mr-2" />
+              Позвонить
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Mobile: 2. Популярные маршруты */}
+      <section className="lg:hidden w-full py-8 bg-[#f0f3f5]">
+        <div className="container mx-auto px-6">
+          <RoutesAccordion />
+        </div>
+      </section>
+
+      {/* Mobile: 3. Купоны на скидку */}
+      <section className="lg:hidden w-full py-8 bg-background">
+        <div className="container mx-auto px-6">
+          <CouponSection />
+        </div>
+      </section>
+
+      {/* Mobile: 4. Отзывы */}
+      <div className="lg:hidden">
+        <ReviewsMobile />
+      </div>
+
+      {/* Mobile: 5. Честно о том, чего вы боитесь */}
+      <div className="lg:hidden">
+        <FlipProblemsSection />
+      </div>
+
+      {/* Desktop: Work Fast Section */}
+      <section className="hidden lg:block w-full pb-16 bg-[#f0f3f5]" style={{ paddingTop: 'calc(4rem - 15px)' }}>
         <div className="container mx-auto px-6">
           <h2 className="text-4xl font-bold text-center mb-12" style={{color: '#083cb5'}}>
             Работаем быстро
@@ -117,8 +196,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Calculator and Company Info Section */}
-      <section id="calculator" className="w-full py-16 bg-background">
+      {/* Desktop: Calculator and Company Info Section */}
+      <section id="calculator" className="hidden lg:block w-full py-16 bg-background">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             
@@ -255,6 +334,11 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Desktop: Reviews */}
+      <div className="hidden lg:block">
+        <Reviews />
+      </div>
 
       <Footer />
     </div>

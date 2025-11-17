@@ -200,12 +200,120 @@ export function CouponSection() {
         <div className="absolute bottom-10 right-20 w-32 h-32 bg-[#405b9a] opacity-5 rounded-full blur-2xl z-[1]"></div>
 
         {/* Title */}
-        <h2 className="text-2xl font-bold mb-6 text-center relative z-10" style={{ color: '#083cb5' }}>
+        <h2 className="text-xl lg:text-2xl font-bold mb-4 lg:mb-6 text-center relative z-10" style={{ color: '#083cb5' }}>
           Купоны на скидку
         </h2>
 
-        {/* Discount Cards - Inverted L Shape (Vertical) */}
-        <div className="relative z-10 grid grid-cols-2 gap-4 h-full">
+        {/* Mobile: Vertical Stack */}
+        <div className="lg:hidden relative z-10 flex flex-col gap-4">
+          {/* Купон 3000₽ */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden flex h-32">
+            <div className="w-16 bg-gradient-to-b from-[#5cb85c] to-[#4cae4c] flex items-center justify-center relative">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#f0f3f5] rounded-full -mt-2"></div>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#f0f3f5] rounded-full -mb-2"></div>
+              <div className="-rotate-90 whitespace-nowrap">
+                <span className="text-white font-bold text-lg">3000 P</span>
+              </div>
+            </div>
+            <div className="flex-1 p-4 flex flex-col justify-between relative">
+              <div className="absolute top-2 right-2">
+                <div className="w-10 h-10 border-2 border-[#f0f3f5] rounded-full flex items-center justify-center">
+                  <span className="text-xl text-[#083cb5]">%</span>
+                </div>
+              </div>
+              <div className="text-center mt-4">
+                <p className="text-sm font-semibold" style={{ color: '#050b18' }}>при заказе</p>
+                <p className="text-xl font-bold" style={{ color: '#050b18' }}>от 22 000 р.</p>
+              </div>
+              <button
+                onClick={() => openModal(3000, 22000)}
+                className="w-full py-2 rounded-full font-bold text-sm transition-all"
+                style={{ backgroundColor: '#f9d71c', color: '#050b18' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9e858';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9d71c';
+                }}
+              >
+                Получить купон
+              </button>
+            </div>
+          </div>
+
+          {/* Купон 4000₽ */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden flex h-32">
+            <div className="w-16 bg-gradient-to-b from-[#5cb85c] to-[#4cae4c] flex items-center justify-center relative">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#f0f3f5] rounded-full -mt-2"></div>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#f0f3f5] rounded-full -mb-2"></div>
+              <div className="-rotate-90 whitespace-nowrap">
+                <span className="text-white font-bold text-lg">4000 P</span>
+              </div>
+            </div>
+            <div className="flex-1 p-4 flex flex-col justify-between relative">
+              <div className="absolute top-2 right-2">
+                <div className="w-10 h-10 border-2 border-[#f0f3f5] rounded-full flex items-center justify-center">
+                  <span className="text-xl text-[#405b9a]">%</span>
+                </div>
+              </div>
+              <div className="text-center mt-4">
+                <p className="text-sm font-semibold" style={{ color: '#050b18' }}>при заказе</p>
+                <p className="text-xl font-bold" style={{ color: '#050b18' }}>от 27 000 р.</p>
+              </div>
+              <button
+                onClick={() => openModal(4000, 27000)}
+                className="w-full py-2 rounded-full font-bold text-sm transition-all"
+                style={{ backgroundColor: '#f9d71c', color: '#050b18' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9e858';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9d71c';
+                }}
+              >
+                Получить купон
+              </button>
+            </div>
+          </div>
+
+          {/* Купон 2000₽ */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden flex h-32">
+            <div className="w-16 bg-gradient-to-b from-[#5cb85c] to-[#4cae4c] flex items-center justify-center relative">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#f0f3f5] rounded-full -mt-2"></div>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#f0f3f5] rounded-full -mb-2"></div>
+              <div className="-rotate-90 whitespace-nowrap">
+                <span className="text-white font-bold text-lg">2000 P</span>
+              </div>
+            </div>
+            <div className="flex-1 p-4 flex flex-col justify-between relative">
+              <div className="absolute top-2 right-2">
+                <div className="w-10 h-10 border-2 border-[#f0f3f5] rounded-full flex items-center justify-center">
+                  <span className="text-xl text-[#083cb5]">%</span>
+                </div>
+              </div>
+              <div className="text-center mt-4">
+                <p className="text-sm font-semibold" style={{ color: '#050b18' }}>при заказе</p>
+                <p className="text-xl font-bold" style={{ color: '#050b18' }}>от 15 000 р.</p>
+              </div>
+              <button
+                onClick={() => openModal(2000, 15000)}
+                className="w-full py-2 rounded-full font-bold text-sm transition-all"
+                style={{ backgroundColor: '#f9d71c', color: '#050b18' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9e858';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9d71c';
+                }}
+              >
+                Получить купон
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop: Original Grid */}
+        <div className="hidden lg:grid relative z-10 grid-cols-2 gap-4 h-full">
           {/* Left Column - Two Cards */}
           <div className="flex flex-col gap-4">
             {/* First Coupon - 3000₽ */}

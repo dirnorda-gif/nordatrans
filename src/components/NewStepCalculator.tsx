@@ -251,11 +251,21 @@ export function NewStepCalculator() {
           {activeStep === 3 && showPrice && estimatedPrice > 0 && (
             <div className="w-full flex justify-center mb-6">
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 inline-block border-2 border-[#083cb5]/30">
-                <div className="text-center">
-                  <div className="text-gray-600 text-xs mb-1">Предварительная стоимость</div>
+                <div className="text-center space-y-2">
+                  <div className="text-gray-600 text-xs">Предварительная стоимость</div>
                   <div className="text-[#083cb5] text-3xl font-bold">
                     {estimatedPrice.toLocaleString('ru-RU')} ₽
                   </div>
+                  {distance && (
+                    <div className="text-gray-700 text-xs">
+                      Расстояние: {Math.round(distance / 1000)} км
+                    </div>
+                  )}
+                  {deliveryDays && (
+                    <div className="text-gray-700 text-xs">
+                      Срок доставки: {deliveryDays}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -859,7 +869,7 @@ function Step4Calculate() {
     from, to, fromCoords, toCoords, 
     transportType, volumeIndex, weightIndex, 
     contactMethod, userContact,
-    isSubmitting, estimatedPrice,
+    isSubmitting, estimatedPrice, distance, deliveryDays, showPrice,
     constructorItems, constructorUrl, isConstructorUsed,
     packaging, palletCount, palletWeight,
     setIsSubmitting, setEstimatedPrice, setDistance, setDeliveryDays, setShowPrice
@@ -991,7 +1001,6 @@ function Step4Calculate() {
         
         if (bitrixResult.success) {
           console.log(`✅ [Step4Calculate] Заявка отправлена! Lead ID: ${bitrixResult.leadId}`);
-          toast.success("Заявка успешно отправлена!");
           setShowPrice(true);
         } else {
           console.error(`❌ [Step4Calculate] Ошибка Bitrix24: ${bitrixResult.error}`);
@@ -1034,9 +1043,9 @@ function Step4Calculate() {
             Предварительный расчёт стоимости перевозки готов.
           </p>
           
-          {/* Блок с ценой и деталями */}
+          {/* Блок с ценой и деталями - только для desktop */}
           {showPrice && estimatedPrice > 0 && (
-            <div className="bg-white rounded-lg p-4 border border-[#083cb5]/20">
+            <div className="hidden lg:block bg-white rounded-lg p-4 border border-[#083cb5]/20">
               <div className="text-[#083cb5] text-2xl lg:text-3xl font-bold mb-3">
                 {estimatedPrice.toLocaleString('ru-RU')} ₽
               </div>

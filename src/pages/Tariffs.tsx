@@ -107,8 +107,21 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Coupon Section and Routes */}
-      <section id="calculator" className="w-full py-12 bg-background">
+      {/* Mobile: Routes and Custom Route Request - показываем сразу после калькулятора */}
+      <section className="lg:hidden w-full py-8 bg-background">
+        <div className="container mx-auto px-6">
+          {/* Популярные маршруты */}
+          <RoutesAccordion />
+          
+          {/* Не нашли нужного маршрута? */}
+          <div className="mt-8">
+            <CustomRouteRequest />
+          </div>
+        </div>
+      </section>
+
+      {/* Desktop: Coupon Section and Routes */}
+      <section id="calculator" className="hidden lg:block w-full py-12 bg-background">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left Column - Coupon Section */}
@@ -120,8 +133,17 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Custom Route Request - Индивидуальный маршрут (только мобильные) */}
-      <CustomRouteRequest />
+      {/* Desktop: Custom Route Request */}
+      <div className="hidden lg:block">
+        <CustomRouteRequest />
+      </div>
+
+      {/* Mobile: Coupon Section */}
+      <section className="lg:hidden w-full py-8 bg-background">
+        <div className="container mx-auto px-6">
+          <CouponSection />
+        </div>
+      </section>
 
       {/* Yandex Reviews Section - Desktop */}
       <Reviews />

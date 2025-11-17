@@ -66,10 +66,10 @@ export function ContactMethodInput({
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         {/* Колонка для Звонка */}
         {contactMethod === "phone" ? (
-          <div className="relative">
+          <div className="relative flex-1">
             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
             <Input
               type="tel"
@@ -88,7 +88,7 @@ export function ContactMethodInput({
         ) : (
           <Button
             variant="outline"
-            className="w-full h-10 bg-[#d6e4f5] text-[#050b18] border-[#083cb5]/20 hover:bg-[#c8daf0]"
+            className="flex-1 h-10 bg-[#d6e4f5] text-[#050b18] border-[#083cb5]/20 hover:bg-[#c8daf0]"
             onClick={() => {
               console.log('📞 [ContactMethodInput] Выбран способ связи: phone');
               onContactMethodChange("phone");
@@ -102,7 +102,7 @@ export function ContactMethodInput({
 
         {/* Колонка для WhatsApp */}
         {contactMethod === "whatsapp" ? (
-          <div className="relative">
+          <div className="relative flex-1">
             <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
             <Input
               type="tel"
@@ -122,7 +122,7 @@ export function ContactMethodInput({
         ) : (
           <Button
             variant="outline"
-            className="w-full h-10 bg-[#d6e4f5] text-[#050b18] border-[#083cb5]/20 hover:bg-[#c8daf0]"
+            className="flex-1 h-10 bg-[#d6e4f5] text-[#050b18] border-[#083cb5]/20 hover:bg-[#c8daf0]"
             onClick={() => {
               console.log('📞 [ContactMethodInput] Выбран способ связи: whatsapp');
               onContactMethodChange("whatsapp");

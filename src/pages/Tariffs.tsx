@@ -102,7 +102,7 @@ const Index = () => {
       <section className="w-full py-16 relative overflow-hidden" style={{
         background: 'linear-gradient(75deg, #ffffff 0%, #ffffff 40%, #f5f8fc 48%, #e8f0fa 52%, #d4e4f7 58%, #c0d8f3 64%, #aacbef 70%, #94beeb 76%, #7eb1e7 82%, #68a4e3 88%, #5297df 94%, #083cb5 100%)'
       }}>
-        <div className="flex justify-center px-[50px] relative z-10">
+        <div className="flex justify-center lg:px-[50px] relative z-10">
           <NewStepCalculator />
         </div>
       </section>

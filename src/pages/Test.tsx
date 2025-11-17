@@ -13,7 +13,7 @@ const Test = () => {
       <Header />
       <BannerUp />
 
-      <section className="flex justify-center px-[50px] pb-[100px] mt-12">
+      <section className="flex justify-center lg:px-[50px] pb-[100px] mt-12">
         <NewStepCalculator />
       </section>
       

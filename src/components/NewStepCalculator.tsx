@@ -238,12 +238,28 @@ export function NewStepCalculator() {
 
         {/* Mobile версия */}
         <div className="lg:hidden flex flex-col px-5">
-          {/* Мобильный индикатор прогресса */}
-          <MobileProgressIndicator 
-            currentStep={activeStep + 1}
-            totalSteps={4}
-            stepName={getStepName()}
-          />
+          {/* Мобильный индикатор прогресса (скрыт на 4-м шаге) */}
+          {activeStep !== 3 && (
+            <MobileProgressIndicator 
+              currentStep={activeStep + 1}
+              totalSteps={4}
+              stepName={getStepName()}
+            />
+          )}
+          
+          {/* Блок стоимости на финальном шаге (вместо индикатора прогресса) */}
+          {activeStep === 3 && showPrice && estimatedPrice > 0 && (
+            <div className="w-full flex justify-center mb-6">
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 inline-block border-2 border-[#083cb5]/30">
+                <div className="text-center">
+                  <div className="text-gray-600 text-xs mb-1">Предварительная стоимость</div>
+                  <div className="text-[#083cb5] text-3xl font-bold">
+                    {estimatedPrice.toLocaleString('ru-RU')} ₽
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Контент шага */}
           <StepContent />
@@ -1010,13 +1026,35 @@ function Step4Calculate() {
           </p>
         </div>
       ) : (
-        <div className="bg-white/90 rounded-lg p-4 lg:p-6 text-center w-full">
-          <p className="text-[#050b18] text-base lg:text-lg font-semibold mb-3 lg:mb-4">
+        <div className="bg-white/90 rounded-lg p-4 lg:p-6 text-center w-full space-y-4">
+          <p className="text-[#050b18] text-base lg:text-lg font-semibold">
             ✅ Ваша заявка принята!
           </p>
-          <p className="text-gray-600 text-xs lg:text-sm mb-2">
+          <p className="text-gray-600 text-xs lg:text-sm">
             Предварительный расчёт стоимости перевозки готов.
           </p>
+          
+          {/* Блок с ценой и деталями */}
+          {showPrice && estimatedPrice > 0 && (
+            <div className="bg-white rounded-lg p-4 border border-[#083cb5]/20">
+              <div className="text-[#083cb5] text-2xl lg:text-3xl font-bold mb-3">
+                {estimatedPrice.toLocaleString('ru-RU')} ₽
+              </div>
+              
+              {distance && (
+                <div className="text-gray-700 text-sm mb-1">
+                  Расстояние: {Math.round(distance / 1000)} км
+                </div>
+              )}
+              
+              {deliveryDays && (
+                <div className="text-gray-700 text-sm">
+                  Срок доставки: {deliveryDays}
+                </div>
+              )}
+            </div>
+          )}
+          
           <p className="text-gray-600 text-xs lg:text-sm">
             Наш менеджер свяжется с вами в течение 10 минут для уточнения деталей и подтверждения финальной стоимости.
           </p>

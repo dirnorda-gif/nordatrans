@@ -238,8 +238,8 @@ export function NewStepCalculator() {
 
         {/* Mobile версия */}
         <div className="lg:hidden flex flex-col px-5">
-          {/* Мобильный индикатор прогресса (скрыт на 4-м шаге) */}
-          {activeStep !== 3 && (
+          {/* Мобильный индикатор прогресса (показываем на шагах 1-3, или на 4-м пока нет цены) */}
+          {(activeStep !== 3 || !showPrice) && (
             <MobileProgressIndicator 
               currentStep={activeStep + 1}
               totalSteps={4}
@@ -247,7 +247,7 @@ export function NewStepCalculator() {
             />
           )}
           
-          {/* Блок стоимости на финальном шаге (вместо индикатора прогресса) */}
+          {/* Блок стоимости на финальном шаге (вместо индикатора прогресса, только когда цена готова) */}
           {activeStep === 3 && showPrice && estimatedPrice > 0 && (
             <div className="w-full flex justify-center mb-6">
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 inline-block border-2 border-[#083cb5]/30">

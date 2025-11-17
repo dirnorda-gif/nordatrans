@@ -11,6 +11,9 @@ import { ContactMethodInput } from "@/components/calculator/inputs/ContactMethod
 import { MovingConstructor, type SelectedItem } from "@/components/MovingConstructor";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { MobileProgressIndicator } from "@/components/MobileProgressIndicator";
+import { FloatingParametersButton } from "@/components/FloatingParametersButton";
+import { ParametersModal } from "@/components/ParametersModal";
 import { validateRouteFields } from "@/utils/calculator/validation";
 import { VOLUME_STEPS_COMMERCIAL, WEIGHT_STEPS_COMMERCIAL, VOLUME_STEPS_PRIVATE } from "@/utils/calculator/constants";
 import { formatVolume, formatWeight, calculateDeliveryDays, formatDeliveryDays } from "@/utils/calculator/calculatorHelpers";
@@ -116,6 +119,7 @@ export function NewStepCalculator() {
   const [packaging, setPackaging] = useState("");
   const [palletCount, setPalletCount] = useState("");
   const [palletWeight, setPalletWeight] = useState("");
+  const [isParametersModalOpen, setIsParametersModalOpen] = useState(false);
 
   // Загрузка Яндекс.Карт
   React.useEffect(() => {
@@ -181,10 +185,42 @@ export function NewStepCalculator() {
     setIsConstructorUsed, setPackaging, setPalletCount, setPalletWeight,
   };
 
+  // Определяем название текущего шага для мобильного индикатора
+  const getStepName = () => {
+    if (activeStep === 0) return "Маршрут";
+    if (activeStep === 1) return "Параметры груза";
+    if (activeStep === 2) return "Контакты";
+    if (activeStep === 3) return "Расчёт стоимости";
+    return "";
+  };
+
+  // Расчёт объёма и веса для модального окна
+  const isMoving = transportType === "Домашний переезд";
+  const palletVolume = 0.144;
+  const totalPalletVolume = packaging === "pallets" && palletCount && palletWeight 
+    ? parseFloat(palletCount) * palletVolume 
+    : 0;
+  const totalPalletWeight = packaging === "pallets" && palletCount && palletWeight 
+    ? parseFloat(palletCount) * parseFloat(palletWeight) / 1000 
+    : 0;
+
+  const displayVolume = isMoving 
+    ? VOLUME_STEPS_MOVING[volumeIndex] 
+    : packaging === "pallets" 
+      ? totalPalletVolume 
+      : VOLUME_STEPS_COMMERCIAL[volumeIndex];
+
+  const displayWeight = isMoving 
+    ? 0 
+    : packaging === "pallets" 
+      ? totalPalletWeight 
+      : WEIGHT_STEPS_COMMERCIAL[weightIndex] / 1000;
+
   return (
     <FormContext.Provider value={contextValue as any}>
-      <div className="w-4/5 mx-auto">
-        <div className="grid grid-cols-[192px_5px_1fr] gap-0">
+      <div className="w-full lg:w-4/5 mx-auto px-4 lg:px-0">
+        {/* Desktop версия */}
+        <div className="hidden lg:grid lg:grid-cols-[192px_5px_1fr] gap-0">
           {/* Левая колонка - Параметры */}
           <div className="flex flex-col">
             <ParametersPanel />
@@ -199,6 +235,39 @@ export function NewStepCalculator() {
             <StepContent />
           </div>
         </div>
+
+        {/* Mobile версия */}
+        <div className="lg:hidden flex flex-col">
+          {/* Мобильный индикатор прогресса */}
+          <MobileProgressIndicator 
+            currentStep={activeStep + 1}
+            totalSteps={4}
+            stepName={getStepName()}
+          />
+          
+          {/* Контент шага */}
+          <StepContent />
+        </div>
+
+        {/* Плавающая кнопка параметров (только на мобильных) */}
+        <FloatingParametersButton onClick={() => setIsParametersModalOpen(true)} />
+
+        {/* Модальное окно с параметрами */}
+        <ParametersModal
+          isOpen={isParametersModalOpen}
+          onClose={() => setIsParametersModalOpen(false)}
+          origin={from}
+          destination={to}
+          volume={displayVolume}
+          weight={displayWeight}
+          price={estimatedPrice}
+          distance={distance ? Math.round(distance / 1000) : 0}
+          deliveryTime={deliveryDays ? parseInt(deliveryDays) : 0}
+          transportType={transportType}
+          packagingType={packaging === "pallets" ? "На палетах" : packaging === "boxes" ? "В коробках" : packaging === "bulk" ? "Россыпью" : undefined}
+          palletCount={packaging === "pallets" ? parseInt(palletCount) : undefined}
+          palletWeight={packaging === "pallets" ? parseInt(palletWeight) : undefined}
+        />
       </div>
     </FormContext.Provider>
   );
@@ -418,8 +487,8 @@ function Step1Route() {
   ];
 
   return (
-    <div className="mt-[55px] px-[40px] flex flex-col items-center gap-6">
-      <div className="w-full flex gap-4">
+    <div className="mt-4 lg:mt-[55px] px-4 lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
+      <div className="w-full flex flex-col lg:flex-row gap-4">
         <div className="flex-1">
           <CityInput
             value={from}
@@ -449,7 +518,7 @@ function Step1Route() {
           <label className="text-sm font-medium text-[#050b18] mb-3 block">
             Тип перевозки
           </label>
-          <div className="flex gap-6 justify-center">
+          <div className="flex flex-col lg:flex-row gap-3 lg:gap-6 justify-center">
             {transportTypes.map((type) => (
               <label
                 key={type.id}
@@ -478,7 +547,7 @@ function Step1Route() {
         </div>
       )}
 
-      <Button className="px-10" onClick={handleNext}>
+      <Button className="px-10 w-full lg:w-auto" onClick={handleNext}>
         Далее
       </Button>
     </div>
@@ -578,10 +647,10 @@ function Step2Cargo() {
 
   return (
     <>
-      <div className="mt-[55px] px-[40px] flex flex-col items-center gap-4">
+      <div className="mt-4 lg:mt-[55px] px-4 lg:px-[40px] flex flex-col items-center gap-4">
         {isMoving ? (
           <>
-            <div className="w-full">
+            <div className="w-full px-4 lg:px-0">
               <div className={`${cargoErrors?.volume ? '[&_label]:!text-red-600' : '[&_label]:!text-gray-800'}`}>
                 <VolumeSlider
                   value={volumeIndex}
@@ -599,7 +668,7 @@ function Step2Cargo() {
             
             <Button 
               variant="outline" 
-              className="px-6"
+              className="px-6 w-full lg:w-auto"
               onClick={() => setIsConstructorOpen(true)}
             >
               🏠 Конструктор переезда
@@ -613,7 +682,7 @@ function Step2Cargo() {
               <label className="text-sm font-medium text-[#050b18] mb-3 block">
                 Как упакован груз?
               </label>
-              <div className="flex gap-6 justify-center">
+              <div className="flex flex-col lg:flex-row gap-3 lg:gap-6 justify-center">
                 {[
                   { id: "pallets", label: "На палетах" },
                   { id: "boxes", label: "В коробках" },
@@ -640,8 +709,8 @@ function Step2Cargo() {
 
             {/* Поля для палет (если выбрано "На палетах") */}
             {packaging === "pallets" && (
-              <div className="w-full flex gap-4 justify-center items-end">
-                <div className="w-[168px]">
+              <div className="w-full flex flex-col lg:flex-row gap-4 justify-center items-end">
+                <div className="w-full lg:w-[168px]">
                   <label className="text-sm font-medium text-[#050b18] mb-2 block">
                     Кол-во палет
                   </label>
@@ -661,7 +730,7 @@ function Step2Cargo() {
                     className="w-full h-10 px-3 rounded-md border border-gray-300 text-[#050b18] placeholder:text-white/60 bg-white"
                   />
                 </div>
-                <div className="w-[168px]">
+                <div className="w-full lg:w-[168px]">
                   <label className="text-sm font-medium text-[#050b18] mb-2 block">
                     Вес одной палеты (кг)
                   </label>
@@ -686,7 +755,7 @@ function Step2Cargo() {
 
             {/* Ползунки (если выбрано "В коробках" или "Россыпью") */}
             {(packaging === "boxes" || packaging === "bulk") && (
-              <div className="w-full flex gap-4">
+              <div className="w-full flex flex-col lg:flex-row gap-4 px-4 lg:px-0">
                 <div className={`flex-1 ${cargoErrors?.volume ? '[&_label]:!text-red-600' : '[&_label]:!text-gray-800'}`}>
                   <VolumeSlider
                     value={volumeIndex}
@@ -718,7 +787,7 @@ function Step2Cargo() {
           </>
         )}
 
-        <Button className="px-10" onClick={handleNext}>
+        <Button className="px-10 w-full lg:w-auto" onClick={handleNext}>
           Далее
         </Button>
       </div>
@@ -746,9 +815,9 @@ function Step3Contacts() {
   };
 
   return (
-    <div className="mt-[55px] px-[40px] flex flex-col items-center gap-6">
+    <div className="mt-4 lg:mt-[55px] px-4 lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
       <div className="w-full">
-        <div className="text-[#050b18] text-center mb-4 font-medium">
+        <div className="text-[#050b18] text-center mb-4 font-medium text-sm lg:text-base">
           Для получения стоимости введите свой номер телефона или WhatsApp
         </div>
         
@@ -760,7 +829,7 @@ function Step3Contacts() {
         />
       </div>
 
-      <Button className="px-10" onClick={handleCalculate}>
+      <Button className="px-10 w-full lg:w-auto" onClick={handleCalculate}>
         Рассчитать стоимость
       </Button>
     </div>
@@ -927,28 +996,28 @@ function Step4Calculate() {
   }, []); // Пустой массив зависимостей - выполняется один раз при монтировании
 
   return (
-    <div className="mt-[55px] px-[40px] flex flex-col items-center gap-4">
+    <div className="mt-4 lg:mt-[55px] px-4 lg:px-[40px] flex flex-col items-center gap-4">
       {isSubmitting ? (
-        <div className="bg-white/90 rounded-lg p-6 text-center w-full">
+        <div className="bg-white/90 rounded-lg p-4 lg:p-6 text-center w-full">
           <div className="mb-4">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#083cb5]"></div>
+            <div className="inline-block animate-spin rounded-full h-10 w-10 lg:h-12 lg:w-12 border-b-2 border-[#083cb5]"></div>
           </div>
-          <p className="text-[#050b18] text-lg font-semibold mb-2">
+          <p className="text-[#050b18] text-base lg:text-lg font-semibold mb-2">
             Отправка заявки для точного расчёта...
           </p>
-          <p className="text-gray-600 text-sm">
+          <p className="text-gray-600 text-xs lg:text-sm">
             Пожалуйста, подождите
           </p>
         </div>
       ) : (
-        <div className="bg-white/90 rounded-lg p-6 text-center w-full">
-          <p className="text-[#050b18] text-lg font-semibold mb-4">
+        <div className="bg-white/90 rounded-lg p-4 lg:p-6 text-center w-full">
+          <p className="text-[#050b18] text-base lg:text-lg font-semibold mb-3 lg:mb-4">
             ✅ Ваша заявка принята!
           </p>
-          <p className="text-gray-600 text-sm mb-2">
+          <p className="text-gray-600 text-xs lg:text-sm mb-2">
             Предварительный расчёт стоимости перевозки готов.
           </p>
-          <p className="text-gray-600 text-sm">
+          <p className="text-gray-600 text-xs lg:text-sm">
             Наш менеджер свяжется с вами в течение 10 минут для уточнения деталей и подтверждения финальной стоимости.
           </p>
         </div>

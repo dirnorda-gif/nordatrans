@@ -8,7 +8,7 @@ interface MobileProgressIndicatorProps {
 
 export function MobileProgressIndicator({ currentStep, totalSteps, stepName }: MobileProgressIndicatorProps) {
   return (
-    <div className="w-full bg-white/40 backdrop-blur-sm rounded-2xl p-4 mb-4">
+    <div className="w-full bg-white/40 backdrop-blur-sm rounded-2xl p-4 mb-6">
       {/* Точки прогресса */}
       <div className="flex items-center justify-center gap-2 mb-2">
         {Array.from({ length: totalSteps }, (_, i) => (

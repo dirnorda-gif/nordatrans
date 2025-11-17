@@ -218,7 +218,7 @@ export function NewStepCalculator() {
 
   return (
     <FormContext.Provider value={contextValue as any}>
-      <div className="w-full lg:w-4/5 mx-auto px-4 lg:px-0">
+      <div className="w-full lg:w-4/5 mx-auto">
         {/* Desktop версия */}
         <div className="hidden lg:grid lg:grid-cols-[192px_5px_1fr] gap-0">
           {/* Левая колонка - Параметры */}
@@ -237,7 +237,7 @@ export function NewStepCalculator() {
         </div>
 
         {/* Mobile версия */}
-        <div className="lg:hidden flex flex-col">
+        <div className="lg:hidden flex flex-col px-5">
           {/* Мобильный индикатор прогресса */}
           <MobileProgressIndicator 
             currentStep={activeStep + 1}
@@ -487,7 +487,7 @@ function Step1Route() {
   ];
 
   return (
-    <div className="mt-4 lg:mt-[55px] px-4 lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
+    <div className="mt-4 lg:mt-[55px] lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
       <div className="w-full flex flex-col lg:flex-row gap-4">
         <div className="flex-1">
           <CityInput
@@ -647,10 +647,10 @@ function Step2Cargo() {
 
   return (
     <>
-      <div className="mt-4 lg:mt-[55px] px-4 lg:px-[40px] flex flex-col items-center gap-4">
+      <div className="mt-4 lg:mt-[55px] lg:px-[40px] flex flex-col items-center gap-4">
         {isMoving ? (
           <>
-            <div className="w-full px-4 lg:px-0">
+            <div className="w-full">
               <div className={`${cargoErrors?.volume ? '[&_label]:!text-red-600' : '[&_label]:!text-gray-800'}`}>
                 <VolumeSlider
                   value={volumeIndex}
@@ -755,7 +755,7 @@ function Step2Cargo() {
 
             {/* Ползунки (если выбрано "В коробках" или "Россыпью") */}
             {(packaging === "boxes" || packaging === "bulk") && (
-              <div className="w-full flex flex-col lg:flex-row gap-4 px-4 lg:px-0">
+              <div className="w-full flex flex-col lg:flex-row gap-4">
                 <div className={`flex-1 ${cargoErrors?.volume ? '[&_label]:!text-red-600' : '[&_label]:!text-gray-800'}`}>
                   <VolumeSlider
                     value={volumeIndex}
@@ -815,7 +815,7 @@ function Step3Contacts() {
   };
 
   return (
-    <div className="mt-4 lg:mt-[55px] px-4 lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
+    <div className="mt-4 lg:mt-[55px] lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
       <div className="w-full">
         <div className="text-[#050b18] text-center mb-4 font-medium text-sm lg:text-base">
           Для получения стоимости введите свой номер телефона или WhatsApp
@@ -996,7 +996,7 @@ function Step4Calculate() {
   }, []); // Пустой массив зависимостей - выполняется один раз при монтировании
 
   return (
-    <div className="mt-4 lg:mt-[55px] px-4 lg:px-[40px] flex flex-col items-center gap-4">
+    <div className="mt-4 lg:mt-[55px] lg:px-[40px] flex flex-col items-center gap-4">
       {isSubmitting ? (
         <div className="bg-white/90 rounded-lg p-4 lg:p-6 text-center w-full">
           <div className="mb-4">

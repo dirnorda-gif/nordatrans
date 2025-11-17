@@ -73,101 +73,11 @@ const Index = () => {
       
       {/* Hero Section */}
       <BannerUp 
-        className="hidden md:block w-full py-8" 
+        className="hidden md:block w-full h-[280px]" 
         overlayType="white"
         backgroundImage="/Lucid_Origin_Photorealistic_169_wallpaper_a_white_cab_Scania_s_3.webp"
         backgroundPosition="center 50%"
-      >
-        {/* Background pattern with CSS */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-16 h-16 border-2 border-blue-200 rounded-lg rotate-12"></div>
-          <div className="absolute top-20 right-20 w-12 h-12 bg-blue-100 rounded-full"></div>
-          <div className="absolute bottom-20 left-20 w-20 h-8 bg-indigo-100 rounded-full"></div>
-          <div className="absolute bottom-10 right-10 w-14 h-14 border-2 border-indigo-200 rounded-lg -rotate-12"></div>
-          <div className="absolute top-1/2 left-1/4 w-8 h-8 bg-slate-200 rounded-full"></div>
-          <div className="absolute top-1/3 right-1/3 w-10 h-6 bg-blue-200 rounded-full"></div>
-          <div className="absolute bottom-1/3 left-1/3 w-6 h-10 bg-indigo-200 rounded-full"></div>
-          
-          {/* Route lines */}
-          <div className="absolute top-16 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-300 to-transparent"></div>
-          <div className="absolute top-32 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-300 to-transparent"></div>
-          <div className="absolute bottom-16 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent"></div>
-        </div>
-        
-        {/* Content */}
-        <div className="container mx-auto px-6">
-          <div className="hidden md:flex items-start justify-between gap-8">
-            {/* Left side - Title block */}
-            <div className="w-[450px]">
-              <div className="relative p-6 rounded-lg shadow-sm hover:shadow-md transition-all overflow-visible" style={{backgroundColor: '#073CB5'}}>
-                {/* Пульсирующие окружности - первый вариант (приглушённый) */}
-                <div className="absolute -top-3 -right-3 w-16 h-16">
-                  {/* Первая пульсирующая окружность */}
-                  <div 
-                    className="absolute inset-0 rounded-full border-[3px] border-white"
-                    style={{
-                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                    }}
-                  ></div>
-                  {/* Вторая пульсирующая окружность с задержкой */}
-                  <div 
-                    className="absolute inset-0 rounded-full border-[3px] border-white"
-                    style={{
-                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                      animationDelay: '0.75s',
-                    }}
-                  ></div>
-                  {/* Третья пульсирующая окружность с задержкой */}
-                  <div 
-                    className="absolute inset-0 rounded-full border-[3px] border-white"
-                    style={{
-                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                      animationDelay: '1.5s',
-                    }}
-                  ></div>
-                </div>
-                
-                {/* Логотип компании (увеличенный) */}
-                <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-10 bg-white p-2">
-                  <picture>
-                    <source srcSet="/logo_norda.webp" type="image/webp" />
-                    <img 
-                      src="/logo_norda.png" 
-                      alt="NORDA TRANS Logo"
-                      className="w-full h-full object-contain"
-                    />
-                  </picture>
-                </div>
-                
-                <h2 className="text-4xl font-bold leading-tight text-white">
-                  Норда транс –<br />правильная логистика
-                </h2>
-              </div>
-            </div>
-            
-            {/* Right side - Advantages cards stacked vertically in cascade */}
-            <div className="flex flex-col gap-4 w-[280px]">
-              {/* First card - shifted left by 50% */}
-              <div className="relative text-center p-4 rounded-lg shadow-sm hover:shadow-md transition-all h-[80px] flex flex-col justify-center" style={{backgroundColor: 'rgba(64, 91, 154, 0.85)', marginLeft: '-140px'}}>
-                <h3 className="text-base font-semibold mb-1 text-white">Надежность</h3>
-                <p className="text-white/90 text-sm">Гарантируем безопасную доставку ваших грузов</p>
-              </div>
-              
-              {/* Second card - shifted left by 25% (middle position) */}
-              <div className="relative text-center p-4 rounded-lg shadow-sm hover:shadow-md transition-all h-[80px] flex flex-col justify-center" style={{backgroundColor: 'rgba(64, 91, 154, 0.85)', marginLeft: '-70px'}}>
-                <h3 className="text-base font-semibold mb-1 text-white">Скорость</h3>
-                <p className="text-white/90 text-sm">Быстрая доставка по оптимальным маршрутам</p>
-              </div>
-              
-              {/* Third card - stays in place (no shift) */}
-              <div className="relative text-center p-4 rounded-lg shadow-sm hover:shadow-md transition-all h-[80px] flex flex-col justify-center" style={{backgroundColor: 'rgba(64, 91, 154, 0.85)'}}>
-                <h3 className="text-base font-semibold mb-1 text-white">Качество</h3>
-                <p className="text-white/90 text-sm">Профессиональный подход к каждому клиенту</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </BannerUp>
+      />
 
       {/* Work Fast Section */}
       <section className="w-full pb-16 bg-[#f0f3f5]" style={{ paddingTop: 'calc(4rem - 15px)' }}>

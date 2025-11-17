@@ -12,8 +12,6 @@ import { MovingConstructor, type SelectedItem } from "@/components/MovingConstru
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MobileProgressIndicator } from "@/components/MobileProgressIndicator";
-import { FloatingParametersButton } from "@/components/FloatingParametersButton";
-import { ParametersModal } from "@/components/ParametersModal";
 import { validateRouteFields } from "@/utils/calculator/validation";
 import { VOLUME_STEPS_COMMERCIAL, WEIGHT_STEPS_COMMERCIAL, VOLUME_STEPS_PRIVATE } from "@/utils/calculator/constants";
 import { formatVolume, formatWeight, calculateDeliveryDays, formatDeliveryDays } from "@/utils/calculator/calculatorHelpers";
@@ -119,7 +117,6 @@ export function NewStepCalculator() {
   const [packaging, setPackaging] = useState("");
   const [palletCount, setPalletCount] = useState("");
   const [palletWeight, setPalletWeight] = useState("");
-  const [isParametersModalOpen, setIsParametersModalOpen] = useState(false);
 
   // Загрузка Яндекс.Карт
   React.useEffect(() => {
@@ -274,26 +271,6 @@ export function NewStepCalculator() {
           {/* Контент шага */}
           <StepContent />
         </div>
-
-        {/* Плавающая кнопка параметров (только на мобильных) */}
-        <FloatingParametersButton onClick={() => setIsParametersModalOpen(true)} />
-
-        {/* Модальное окно с параметрами */}
-        <ParametersModal
-          isOpen={isParametersModalOpen}
-          onClose={() => setIsParametersModalOpen(false)}
-          origin={from}
-          destination={to}
-          volume={displayVolume}
-          weight={displayWeight}
-          price={estimatedPrice}
-          distance={distance ? Math.round(distance / 1000) : 0}
-          deliveryTime={deliveryDays ? parseInt(deliveryDays) : 0}
-          transportType={transportType}
-          packagingType={packaging === "pallets" ? "На палетах" : packaging === "boxes" ? "В коробках" : packaging === "bulk" ? "Россыпью" : undefined}
-          palletCount={packaging === "pallets" ? parseInt(palletCount) : undefined}
-          palletWeight={packaging === "pallets" ? parseInt(palletWeight) : undefined}
-        />
       </div>
     </FormContext.Provider>
   );

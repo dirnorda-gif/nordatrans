@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Phone } from "lucide-react";
+import { Phone, X } from "lucide-react";
 import YandexMetrika from "@/components/YandexMetrika";
 import { initAnalytics } from "@/utils/analytics";
 import { useYandexMetrika } from "@/hooks/useYandexMetrika";
@@ -13,6 +13,8 @@ import { RoutesAccordion } from "@/components/RoutesAccordion";
 import { BannerUp } from "@/components/BannerUp";
 import { FlipProblemsSection } from "@/components/FlipProblemsSection";
 import CustomRouteRequest from "@/components/CustomRouteRequest";
+import { NewStepCalculator } from "@/components/NewStepCalculator";
+import { CouponSection } from "@/components/CouponSection";
 
 const Index = () => {
   // Form states
@@ -186,94 +188,21 @@ const Index = () => {
         </div>
       </BannerUp>
 
+      {/* New Step Calculator */}
+      <section className="w-full py-16 relative overflow-hidden" style={{
+        background: 'linear-gradient(75deg, #ffffff 0%, #ffffff 40%, #f5f8fc 48%, #e8f0fa 52%, #d4e4f7 58%, #c0d8f3 64%, #aacbef 70%, #94beeb 76%, #7eb1e7 82%, #68a4e3 88%, #5297df 94%, #083cb5 100%)'
+      }}>
+        <div className="flex justify-center px-[50px] relative z-10">
+          <NewStepCalculator />
+        </div>
+      </section>
 
-      {/* Calculator and Routes Section */}
+      {/* Coupon Section and Routes */}
       <section id="calculator" className="w-full py-12 bg-background">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
-            {/* Left Column - Calculator Form */}
-            <ShippingCalculatorForm
-              routeData={{
-                fromCity,
-                toCity,
-                fromCoordinates,
-                toCoordinates,
-                routeDistance,
-                routeDuration,
-                isCalculatingRoute,
-              }}
-              calculatorState={{
-                calculatorStep,
-                showFinalPrice,
-                transportType,
-                weightIndex,
-                volumeIndex,
-                estimatedCost,
-              }}
-              movingData={{
-                movingItems,
-                boxesCount,
-                furnitureDetails,
-                appliancesDetails,
-              }}
-              cargoData={{
-                cargoPackaging,
-                palletCount,
-                cargoNature,
-              }}
-              foodData={{
-                truckType,
-                temperatureMode,
-                foodPackaging,
-                foodPalletCount,
-              }}
-              otherData={{
-                otherPackaging,
-                otherPalletCount,
-                otherNature,
-              }}
-              contactData={{
-                contactMethod,
-                userContact,
-                showContactForm,
-                managerName,
-                managerPhone,
-              }}
-              actions={{
-                setFromCity,
-                setToCity,
-                setFromCoordinates,
-                setToCoordinates,
-                setCalculatorStep,
-                setShowFinalPrice,
-                setTransportType,
-                setWeightIndex,
-                setVolumeIndex,
-                setEstimatedCost,
-                setMovingItems,
-                setBoxesCount,
-                setFurnitureDetails,
-                setAppliancesDetails,
-                setCargoPackaging,
-                setPalletCount,
-                setCargoNature,
-                setTruckType,
-                setTemperatureMode,
-                setFoodPackaging,
-                setFoodPalletCount,
-                setOtherPackaging,
-                setOtherPalletCount,
-                setOtherNature,
-                setContactMethod,
-                setUserContact,
-                setShowContactForm,
-                setRouteDistance,
-                setRouteDuration,
-                setIsCalculatingRoute,
-                reachGoal,
-              }}
-              />
+            {/* Left Column - Coupon Section */}
+            <CouponSection />
             
             {/* Right Column - Routes Accordion */}
             <RoutesAccordion />
@@ -284,12 +213,6 @@ const Index = () => {
       {/* Custom Route Request - Индивидуальный маршрут (только мобильные) */}
       <CustomRouteRequest />
 
-      {/* Work Process Section - Работаем быстро! */}
-      <WorkProcess />
-
-      {/* Flip Problems Section - Интерактивное сравнение проблем и решений */}
-      <FlipProblemsSection />
-
       {/* Yandex Reviews Section - Desktop */}
       <Reviews />
       
@@ -297,6 +220,12 @@ const Index = () => {
       <div className="md:hidden">
         <ReviewsMobile />
       </div>
+
+      {/* Work Process Section - Работаем быстро! */}
+      <WorkProcess />
+
+      {/* Flip Problems Section - Интерактивное сравнение проблем и решений */}
+      <FlipProblemsSection />
 
       {/* Яндекс Метрика - загружается с отложенной загрузкой */}
       <YandexMetrika />

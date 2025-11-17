@@ -13,6 +13,8 @@ import { RoutesAccordion } from "@/components/RoutesAccordion";
 import { BannerUp } from "@/components/BannerUp";
 import { FlipProblemsSection } from "@/components/FlipProblemsSection";
 import CustomRouteRequest from "@/components/CustomRouteRequest";
+import { NewStepCalculator } from "@/components/NewStepCalculator";
+import { CouponSection } from "@/components/CouponSection";
 
 const Index = () => {
   // Form states
@@ -116,18 +118,41 @@ const Index = () => {
           <div className="hidden md:flex items-start justify-between gap-8">
             {/* Left side - Title block */}
             <div className="w-[450px]">
-              <div className="relative p-6 rounded-lg shadow-sm hover:shadow-md transition-all overflow-visible" style={{borderTopRightRadius: '0', backgroundColor: 'rgba(8, 60, 181, 0.85)'}}>
-                {/* Вырез в правом верхнем углу с плавным закруглением */}
-                <div className="absolute top-0 right-0 w-14 h-14 bg-background" style={{borderBottomLeftRadius: '100%', borderTopRightRadius: '8px'}}></div>
-                {/* Логотип компании вместо кружочка со стрелкой */}
-                <div className="absolute -top-2 -right-2 w-12 h-12 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform z-10 bg-white p-1">
+              <div className="relative p-6 rounded-lg shadow-sm hover:shadow-md transition-all overflow-visible" style={{backgroundColor: '#073CB5'}}>
+                {/* Пульсирующие окружности - первый вариант (приглушённый) */}
+                <div className="absolute -top-3 -right-3 w-16 h-16">
+                  {/* Первая пульсирующая окружность */}
+                  <div 
+                    className="absolute inset-0 rounded-full border-[3px] border-white"
+                    style={{
+                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }}
+                  ></div>
+                  {/* Вторая пульсирующая окружность с задержкой */}
+                  <div 
+                    className="absolute inset-0 rounded-full border-[3px] border-white"
+                    style={{
+                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                      animationDelay: '0.75s',
+                    }}
+                  ></div>
+                  {/* Третья пульсирующая окружность с задержкой */}
+                  <div 
+                    className="absolute inset-0 rounded-full border-[3px] border-white"
+                    style={{
+                      animation: 'pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                      animationDelay: '1.5s',
+                    }}
+                  ></div>
+                </div>
+                
+                {/* Логотип компании (увеличенный) */}
+                <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-10 bg-white p-2">
                   <picture>
                     <source srcSet="/logo_norda.webp" type="image/webp" />
                     <img 
                       src="/logo_norda.png" 
-                      alt="NORDA TRANS Logo" 
-                      width="48"
-                      height="48"
+                      alt="NORDA TRANS Logo"
                       className="w-full h-full object-contain"
                     />
                   </picture>
@@ -163,109 +188,30 @@ const Index = () => {
         </div>
       </BannerUp>
 
+      {/* New Step Calculator */}
+      <section className="w-full py-16 relative overflow-hidden" style={{
+        background: 'linear-gradient(75deg, #ffffff 0%, #ffffff 40%, #f5f8fc 48%, #e8f0fa 52%, #d4e4f7 58%, #c0d8f3 64%, #aacbef 70%, #94beeb 76%, #7eb1e7 82%, #68a4e3 88%, #5297df 94%, #083cb5 100%)'
+      }}>
+        <div className="flex justify-center px-[50px] relative z-10">
+          <NewStepCalculator />
+        </div>
+      </section>
 
-      {/* Calculator and Routes Section */}
+      {/* Coupon Section and Routes */}
       <section id="calculator" className="w-full py-12 bg-background">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
-            {/* Left Column - Calculator Form */}
-            <ShippingCalculatorForm
-              routeData={{
-                fromCity,
-                toCity,
-                fromCoordinates,
-                toCoordinates,
-                routeDistance,
-                routeDuration,
-                isCalculatingRoute,
-              }}
-              calculatorState={{
-                calculatorStep,
-                showFinalPrice,
-                transportType,
-                weightIndex,
-                volumeIndex,
-                estimatedCost,
-              }}
-              movingData={{
-                movingItems,
-                boxesCount,
-                furnitureDetails,
-                appliancesDetails,
-              }}
-              cargoData={{
-                cargoPackaging,
-                palletCount,
-                cargoNature,
-              }}
-              foodData={{
-                truckType,
-                temperatureMode,
-                foodPackaging,
-                foodPalletCount,
-              }}
-              otherData={{
-                otherPackaging,
-                otherPalletCount,
-                otherNature,
-              }}
-              contactData={{
-                contactMethod,
-                userContact,
-                showContactForm,
-                managerName,
-                managerPhone,
-              }}
-              actions={{
-                setFromCity,
-                setToCity,
-                setFromCoordinates,
-                setToCoordinates,
-                setCalculatorStep,
-                setShowFinalPrice,
-                setTransportType,
-                setWeightIndex,
-                setVolumeIndex,
-                setEstimatedCost,
-                setMovingItems,
-                setBoxesCount,
-                setFurnitureDetails,
-                setAppliancesDetails,
-                setCargoPackaging,
-                setPalletCount,
-                setCargoNature,
-                setTruckType,
-                setTemperatureMode,
-                setFoodPackaging,
-                setFoodPalletCount,
-                setOtherPackaging,
-                setOtherPalletCount,
-                setOtherNature,
-                setContactMethod,
-                setUserContact,
-                setShowContactForm,
-                setRouteDistance,
-                setRouteDuration,
-                setIsCalculatingRoute,
-                reachGoal,
-              }}
-              />
+            {/* Left Column - Coupon Section */}
+            <CouponSection />
             
             {/* Right Column - Routes Accordion */}
-            <RoutesAccordion />
+            <RoutesAccordion initialDirection="from-moscow" />
           </div>
         </div>
       </section>
 
       {/* Custom Route Request - Индивидуальный маршрут (только мобильные) */}
       <CustomRouteRequest />
-
-      {/* Work Process Section - Работаем быстро! */}
-      <WorkProcess />
-
-      {/* Flip Problems Section - Интерактивное сравнение проблем и решений */}
-      <FlipProblemsSection />
 
       {/* Yandex Reviews Section - Desktop */}
       <Reviews />
@@ -274,6 +220,12 @@ const Index = () => {
       <div className="md:hidden">
         <ReviewsMobile />
       </div>
+
+      {/* Work Process Section - Работаем быстро! */}
+      <WorkProcess />
+
+      {/* Flip Problems Section - Интерактивное сравнение проблем и решений */}
+      <FlipProblemsSection />
 
       {/* Яндекс Метрика - загружается с отложенной загрузкой */}
       <YandexMetrika />

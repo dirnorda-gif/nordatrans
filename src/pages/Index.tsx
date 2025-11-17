@@ -14,6 +14,7 @@ import { CouponSection } from "@/components/CouponSection";
 import Reviews from "@/components/Reviews";
 import ReviewsMobile from "@/components/ReviewsMobile";
 import { FlipProblemsSection } from "@/components/FlipProblemsSection";
+import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -339,6 +340,9 @@ const Index = () => {
       <div className="hidden lg:block">
         <Reviews />
       </div>
+
+      {/* Floating WhatsApp Button - Mobile Only */}
+      <FloatingWhatsAppButton />
 
       <Footer />
     </div>

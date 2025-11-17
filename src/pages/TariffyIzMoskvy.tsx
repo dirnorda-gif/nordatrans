@@ -15,6 +15,7 @@ import { FlipProblemsSection } from "@/components/FlipProblemsSection";
 import CustomRouteRequest from "@/components/CustomRouteRequest";
 import { NewStepCalculator } from "@/components/NewStepCalculator";
 import { CouponSection } from "@/components/CouponSection";
+import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
 
 const Index = () => {
   // Form states
@@ -161,6 +162,9 @@ const Index = () => {
 
       {/* Яндекс Метрика - загружается с отложенной загрузкой */}
       <YandexMetrika />
+      
+      {/* Floating WhatsApp Button - Mobile Only */}
+      <FloatingWhatsAppButton />
       
       {/* Footer */}
       <Footer />

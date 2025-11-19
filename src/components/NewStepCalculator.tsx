@@ -29,6 +29,12 @@ console.log('📦 [NewStepCalculator] Компонент загружен');
 const VOLUME_STEPS_MOVING = VOLUME_STEPS_PRIVATE.filter(v => v <= 45);
 
 // ============================================================================
+// ЗАЩИТА ОТ ДУБЛИРОВАНИЯ ЛИДОВ
+// ============================================================================
+// Глобальный Set для отслеживания отправленных заявок (не сбрасывается при размонтировании)
+const submittedLeads = new Set<string>();
+
+// ============================================================================
 // A/B ТЕСТИРОВАНИЕ
 // ============================================================================
 // Функция для определения варианта A/B теста
@@ -1326,13 +1332,21 @@ function Step4CalculateVariantB() {
   } = ctx;
   
   const isMoving = transportType === "Домашний переезд";
-  const hasSubmitted = React.useRef(false);
 
   React.useEffect(() => {
-    if (hasSubmitted.current) return;
+    // Создаём уникальный ключ для этой заявки
+    const leadKey = `${from}-${to}-${userContact}-${transportType}-${volumeIndex}`;
+    
+    // Проверяем, не отправляли ли мы уже эту заявку
+    if (submittedLeads.has(leadKey)) {
+      console.log('⚠️ [Step4VariantB] Заявка уже отправлена, пропускаем дубль');
+      return;
+    }
     
     const submitLead = async () => {
-      hasSubmitted.current = true;
+      // Добавляем в Set ДО отправки, чтобы предотвратить дубли
+      submittedLeads.add(leadKey);
+      console.log(`🔒 [Step4VariantB] Заявка заблокирована: ${leadKey}`);
       setIsSubmitting(true);
 
       try {
@@ -1412,7 +1426,9 @@ function Step4CalculateVariantB() {
       } catch (error) {
         console.error('❌ [VariantB] Ошибка:', error);
         toast.error(`Произошла ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
-        hasSubmitted.current = false;
+        // При ошибке удаляем из Set, чтобы можно было повторить отправку
+        submittedLeads.delete(leadKey);
+        console.log(`🔓 [Step4VariantB] Заявка разблокирована для повтора: ${leadKey}`);
       } finally {
         setIsSubmitting(false);
       }

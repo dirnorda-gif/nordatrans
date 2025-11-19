@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import YandexMetrika from "@/components/YandexMetrika";
-import { ShippingCalculatorForm } from "@/components/ShippingCalculatorForm";
+import { NewStepCalculator } from "@/components/NewStepCalculator";
 import { useYandexMetrika } from "@/hooks/useYandexMetrika";
 import { BannerUp } from "@/components/BannerUp";
 import { BrandCard } from "@/components/BrandCard";
@@ -18,59 +18,6 @@ import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
 
 const Index = () => {
   const navigate = useNavigate();
-  
-  // Form states
-  const [calculatorStep, setCalculatorStep] = useState(1);
-  const [showFinalPrice, setShowFinalPrice] = useState(false);
-  const [fromCity, setFromCity] = useState("");
-  const [toCity, setToCity] = useState("");
-  const [fromCoordinates, setFromCoordinates] = useState<[number, number] | undefined>(undefined);
-  const [toCoordinates, setToCoordinates] = useState<[number, number] | undefined>(undefined);
-  const [transportType, setTransportType] = useState("");
-  const [weightIndex, setWeightIndex] = useState(0);
-  const [volumeIndex, setVolumeIndex] = useState(0);
-  const [estimatedCost, setEstimatedCost] = useState(0);
-  const [routeDistance, setRouteDistance] = useState<number | null>(null);
-  const [routeDuration, setRouteDuration] = useState<number | null>(null);
-  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
-
-  // Домашний переезд
-  const [movingItems, setMovingItems] = useState({
-    boxes: false,
-    furniture: false,
-    appliances: false,
-  });
-  const [boxesCount, setBoxesCount] = useState("");
-  const [furnitureDetails, setFurnitureDetails] = useState("");
-  const [appliancesDetails, setAppliancesDetails] = useState("");
-
-  // Промышленные товары
-  const [cargoPackaging, setCargoPackaging] = useState("");
-  const [palletCount, setPalletCount] = useState("");
-  const [cargoNature, setCargoNature] = useState("");
-
-  // Продукты питания
-  const [truckType, setTruckType] = useState("");
-  const [temperatureMode, setTemperatureMode] = useState("");
-  const [foodPackaging, setFoodPackaging] = useState("");
-  const [foodPalletCount, setFoodPalletCount] = useState("");
-
-  // Другое
-  const [otherPackaging, setOtherPackaging] = useState("");
-  const [otherPalletCount, setOtherPalletCount] = useState("");
-  const [otherNature, setOtherNature] = useState("");
-
-  // Контактная информация менеджера
-  const [managerName] = useState("Дарья");
-  const [managerPhone] = useState("+7 (499) 444 06 51");
-
-  // Форма для получения точного расчёта
-  const [contactMethod, setContactMethod] = useState<"phone" | "whatsapp">("phone");
-  const [userContact, setUserContact] = useState("");
-  const [showContactForm, setShowContactForm] = useState(false);
-
-  // Яндекс Метрика
-  const { reachGoal } = useYandexMetrika(57594511);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -197,94 +144,17 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Desktop: Calculator Section */}
+      <NewStepCalculator />
+
       {/* Desktop: Calculator and Company Info Section */}
       <section id="calculator" className="hidden lg:block w-full py-16 bg-background">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             
-            {/* Left Column - Calculator */}
+            {/* Left Column - Popular Routes */}
             <div>
-              <ShippingCalculatorForm
-                routeData={{
-                  fromCity,
-                  toCity,
-                  fromCoordinates,
-                  toCoordinates,
-                  routeDistance,
-                  routeDuration,
-                  isCalculatingRoute,
-                }}
-                calculatorState={{
-                  calculatorStep,
-                  showFinalPrice,
-                  transportType,
-                  weightIndex,
-                  volumeIndex,
-                  estimatedCost,
-                }}
-                movingData={{
-                  movingItems,
-                  boxesCount,
-                  furnitureDetails,
-                  appliancesDetails,
-                }}
-                cargoData={{
-                  cargoPackaging,
-                  palletCount,
-                  cargoNature,
-                }}
-                foodData={{
-                  truckType,
-                  temperatureMode,
-                  foodPackaging,
-                  foodPalletCount,
-                }}
-                otherData={{
-                  otherPackaging,
-                  otherPalletCount,
-                  otherNature,
-                }}
-                contactData={{
-                  contactMethod,
-                  userContact,
-                  showContactForm,
-                  managerName,
-                  managerPhone,
-                }}
-                actions={{
-                  setFromCity,
-                  setToCity,
-                  setFromCoordinates,
-                  setToCoordinates,
-                  setCalculatorStep,
-                  setShowFinalPrice,
-                  setTransportType,
-                  setWeightIndex,
-                  setVolumeIndex,
-                  setEstimatedCost,
-                  setMovingItems,
-                  setBoxesCount,
-                  setFurnitureDetails,
-                  setAppliancesDetails,
-                  setCargoPackaging,
-                  setPalletCount,
-                  setCargoNature,
-                  setTruckType,
-                  setTemperatureMode,
-                  setFoodPackaging,
-                  setFoodPalletCount,
-                  setOtherPackaging,
-                  setOtherPalletCount,
-                  setOtherNature,
-                  setContactMethod,
-                  setUserContact,
-                  setShowContactForm,
-                  setRouteDistance,
-                  setRouteDuration,
-                  setIsCalculatingRoute,
-                  reachGoal,
-                }}
-              />
+              <RoutesAccordion />
             </div>
 
             {/* Right Column - Company Info */}

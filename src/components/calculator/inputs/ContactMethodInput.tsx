@@ -1,10 +1,10 @@
 // src/components/calculator/inputs/ContactMethodInput.tsx
-// Переиспользуемый компонент для выбора способа связи (WhatsApp или Телефон)
+// Переиспользуемый компонент для выбора способа связи (WhatsApp или СМС)
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, MessageCircle } from "lucide-react";
+import { MessageSquare, MessageCircle } from "lucide-react";
 
 interface ContactMethodInputProps {
   contactMethod: "phone" | "whatsapp" | "";
@@ -67,13 +67,13 @@ export function ContactMethodInput({
   return (
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row gap-4">
-        {/* Колонка для Звонка */}
+        {/* Колонка для СМС */}
         {contactMethod === "phone" ? (
           <div className="relative flex-1">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
+            <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
             <Input
               type="tel"
-              placeholder="Ваш телефон"
+              placeholder="Ваш телефон для СМС"
               value={userContact}
               onChange={handlePhoneChange}
               onFocus={(e) => {
@@ -90,13 +90,13 @@ export function ContactMethodInput({
             variant="outline"
             className="flex-1 h-10 bg-[#d6e4f5] text-[#050b18] border-[#083cb5]/20 hover:bg-[#c8daf0]"
             onClick={() => {
-              console.log('📞 [ContactMethodInput] Выбран способ связи: phone');
+              console.log('📞 [ContactMethodInput] Выбран способ связи: SMS');
               onContactMethodChange("phone");
               onUserContactChange("+7 ");
             }}
           >
-            <Phone className="w-4 h-4 mr-1" />
-            Телефон
+            <MessageSquare className="w-4 h-4 mr-1" />
+            СМС
           </Button>
         )}
 
@@ -122,7 +122,8 @@ export function ContactMethodInput({
         ) : (
           <Button
             variant="outline"
-            className="flex-1 h-10 bg-[#d6e4f5] text-[#050b18] border-[#083cb5]/20 hover:bg-[#c8daf0]"
+            className="flex-1 h-10 text-white border-[#25D366] hover:opacity-90"
+            style={{ backgroundColor: '#25D366' }}
             onClick={() => {
               console.log('📞 [ContactMethodInput] Выбран способ связи: whatsapp');
               onContactMethodChange("whatsapp");

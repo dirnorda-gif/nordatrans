@@ -56,6 +56,9 @@ interface Bitrix24LeadData {
     packaging?: string; // "pallets" | "boxes" | "bulk"
     newPalletCount?: string;
     newPalletWeight?: string;
+    // A/B тестирование
+    abTestVariant?: string; // "A" или "B"
+    abTestTimestamp?: string; // Временная метка назначения варианта
   };
 }
 
@@ -363,6 +366,12 @@ ${yandexClientId ? `\nЯндекс Метрика Client ID: ${yandexClientId}` 
       leadFields.UF_CRM_1763321505007 = data.additionalInfo.constructorUrl; // Ссылка на конструктор переезда
       console.log('🔗 [Bitrix24] Ссылка на конструктор добавлена в поле UF_CRM_1763321505007:', data.additionalInfo.constructorUrl);
     }
+    
+    // Добавляем вариант A/B теста в кастомное поле
+    if (data.additionalInfo?.abTestVariant) {
+      leadFields.UF_CRM_1763507662868 = data.additionalInfo.abTestVariant; // A/B тест (A или B)
+      console.log('🧪 [Bitrix24] Вариант A/B теста добавлен в поле UF_CRM_1763507662868:', data.additionalInfo.abTestVariant);
+    }
 
     // Добавляем UTM метки (стандартные поля Bitrix24)
     if (utmParams.utm_source) {
@@ -392,6 +401,7 @@ ${yandexClientId ? `\nЯндекс Метрика Client ID: ${yandexClientId}` 
     console.log('📍 Откуда (UF_CRM_1605030443):', leadFields.UF_CRM_1605030443);
     console.log('📍 Куда (UF_CRM_1605030456):', leadFields.UF_CRM_1605030456);
     console.log('🔗 Ссылка на конструктор (UF_CRM_1763321505007):', leadFields.UF_CRM_1763321505007 || 'не указано');
+    console.log('🧪 A/B тест вариант (UF_CRM_1763507662868):', leadFields.UF_CRM_1763507662868 || 'не указано');
     console.log('📊 Yandex Client ID (UF_CRM_1759567366):', leadFields.UF_CRM_1759567366);
     console.log('📊 UTM метки:', {
       source: leadFields.UTM_SOURCE || 'не указано',

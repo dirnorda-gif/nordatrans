@@ -18,14 +18,15 @@ export default function Signpost({ text, active = false }: SignpostProps) {
               clip-path: polygon(0 0, calc(100% - var(--n)) 0, 100% 50%, calc(100% - var(--n)) 100%, 0 100%, var(--n) 50%);
               shape-outside: polygon(0 0, calc(100% - var(--n)) 0, 100% 50%, calc(100% - var(--n)) 100%, 0 100%, var(--n) 50%);
               padding: 6px 0;
-              width: 200px;
+              flex: 1;
+              min-width: 0;
               display: flex;
               align-items: center;
               justify-content: center;
             }
         .signpost2-right p {
           font-family: 'Oswald', sans-serif;
-          font-size: 12px;
+          font-size: 14px;
           margin: 0;
           text-transform: uppercase;
         }

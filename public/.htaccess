@@ -51,5 +51,17 @@
   Header set X-Content-Type-Options "nosniff"
   # Referrer Policy
   Header set Referrer-Policy "strict-origin-when-cross-origin"
+  
+  # Кэш-контроль для статических файлов с хэшами (immutable)
+  <FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf)$">
+    Header set Cache-Control "max-age=31536000, public, immutable"
+  </FilesMatch>
+  
+  # HTML файлы не кэшировать (важно для Вебвизора!)
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
 </IfModule>
 

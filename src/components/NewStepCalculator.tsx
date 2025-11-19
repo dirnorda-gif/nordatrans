@@ -11,6 +11,8 @@ import { ContactMethodInput } from "@/components/calculator/inputs/ContactMethod
 import { MovingConstructor, type SelectedItem } from "@/components/MovingConstructor";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Phone } from "lucide-react";
 import { MobileProgressIndicator } from "@/components/MobileProgressIndicator";
 import { validateRouteFields } from "@/utils/calculator/validation";
 import { VOLUME_STEPS_COMMERCIAL, WEIGHT_STEPS_COMMERCIAL, VOLUME_STEPS_PRIVATE } from "@/utils/calculator/constants";
@@ -25,6 +27,34 @@ console.log('📦 [NewStepCalculator] Компонент загружен');
 
 // Шаги объема для домашнего переезда (до 45 м³)
 const VOLUME_STEPS_MOVING = VOLUME_STEPS_PRIVATE.filter(v => v <= 45);
+
+// ============================================================================
+// A/B ТЕСТИРОВАНИЕ
+// ============================================================================
+// Функция для определения варианта A/B теста
+function getABTestVariant(): 'A' | 'B' {
+  const savedVariant = sessionStorage.getItem('ab_test_variant');
+  if (savedVariant === 'A' || savedVariant === 'B') {
+    console.log(`🧪 [A/B Test] Используется сохранённый вариант: ${savedVariant}`);
+    return savedVariant;
+  }
+  
+  const variant = Math.random() < 0.5 ? 'A' : 'B';
+  sessionStorage.setItem('ab_test_variant', variant);
+  sessionStorage.setItem('ab_test_start', Date.now().toString());
+  
+  console.log(`🧪 [A/B Test] Назначен новый вариант: ${variant}`);
+  
+  // Отправляем событие в Яндекс.Метрику
+  if (typeof window !== 'undefined' && (window as any).ym) {
+    (window as any).ym(98742465, 'params', {
+      ab_test_variant: variant,
+      ab_test_assigned: new Date().toISOString()
+    });
+  }
+  
+  return variant;
+}
 
 // ============================================================================
 // ТИПЫ
@@ -60,6 +90,9 @@ interface FormContextType {
   packaging: string; // "pallets" | "boxes" | "bulk" | ""
   palletCount: string;
   palletWeight: string;
+  // A/B тестирование
+  abTestVariant: 'A' | 'B';
+  abTestAssigned: boolean;
 }
 
 const FormContext = createContext<FormContextType>({
@@ -84,6 +117,8 @@ const FormContext = createContext<FormContextType>({
   packaging: "",
   palletCount: "",
   palletWeight: "",
+  abTestVariant: 'A',
+  abTestAssigned: false,
 });
 
 function useFormContext() {
@@ -117,6 +152,21 @@ export function NewStepCalculator() {
   const [packaging, setPackaging] = useState("");
   const [palletCount, setPalletCount] = useState("");
   const [palletWeight, setPalletWeight] = useState("");
+  
+  // A/B тестирование
+  const [abTestVariant, setAbTestVariant] = useState<'A' | 'B'>('A');
+  const [abTestAssigned, setAbTestAssigned] = useState(false);
+  const [hasStartedFilling, setHasStartedFilling] = useState(false);
+
+  // Назначение варианта A/B теста при загрузке компонента
+  React.useEffect(() => {
+    if (!abTestAssigned) {
+      const variant = getABTestVariant();
+      setAbTestVariant(variant);
+      setAbTestAssigned(true);
+      console.log(`🧪 [NewStepCalculator] A/B вариант назначен при загрузке: ${variant}`);
+    }
+  }, [abTestAssigned]);
 
   // Загрузка Яндекс.Карт
   React.useEffect(() => {
@@ -169,25 +219,37 @@ export function NewStepCalculator() {
     setPackaging: (p: string) => void;
     setPalletCount: (c: string) => void;
     setPalletWeight: (w: string) => void;
+    hasStartedFilling: boolean;
+    setHasStartedFilling: (v: boolean) => void;
   } = {
     from, to, fromCoords, toCoords, errors, activeStep, transportType,
     volumeIndex, weightIndex, contactMethod, userContact, cargoErrors,
     estimatedPrice, distance, deliveryDays, isSubmitting, showPrice,
     constructorItems, constructorUrl, isConstructorUsed,
     packaging, palletCount, palletWeight,
+    abTestVariant, abTestAssigned, hasStartedFilling,
     setFrom, setFromCoords, setTo, setToCoords, setErrors, setActiveStep,
     setTransportType, setVolumeIndex, setWeightIndex, setContactMethod,
     setUserContact, setCargoErrors, setEstimatedPrice, setDistance,
     setDeliveryDays, setIsSubmitting, setShowPrice, setConstructorItems, setConstructorUrl,
     setIsConstructorUsed, setPackaging, setPalletCount, setPalletWeight,
+    setHasStartedFilling,
   };
 
+  // Определяем количество шагов и названия в зависимости от варианта A/B теста
+  const totalSteps = abTestVariant === 'A' ? 3 : 4;
+  const showPriceInParams = abTestVariant === 'A'; // Показывать ли цену в параметрах
+  
   // Определяем название текущего шага для мобильного индикатора
   const getStepName = () => {
     if (activeStep === 0) return "Маршрут";
     if (activeStep === 1) return "Параметры груза";
-    if (activeStep === 2) return "Контакты";
-    if (activeStep === 3) return "Расчёт стоимости";
+    if (abTestVariant === 'A') {
+      if (activeStep === 2) return "Цена";
+    } else {
+      if (activeStep === 2) return "Контакты";
+      if (activeStep === 3) return "Цена";
+    }
     return "";
   };
 
@@ -215,7 +277,12 @@ export function NewStepCalculator() {
 
   return (
     <FormContext.Provider value={contextValue as any}>
-      <div className="w-full lg:w-4/5 mx-auto">
+    <section 
+      className="w-full py-16 relative border-b-2 border-[#083cb5] overflow-hidden" 
+      style={{ background: 'linear-gradient(180deg, #E5F3FC 0%, #5599DF 100%)' }}
+    >
+        <div className="flex justify-center lg:px-[50px] relative z-10">
+          <div className="w-full lg:w-4/5 mx-auto">
         {/* Desktop версия */}
         <div className="hidden lg:grid lg:grid-cols-[192px_5px_1fr] gap-0">
           {/* Левая колонка - Параметры */}
@@ -235,17 +302,17 @@ export function NewStepCalculator() {
 
         {/* Mobile версия */}
         <div className="lg:hidden flex flex-col px-5">
-          {/* Мобильный индикатор прогресса (показываем на шагах 1-3, или на 4-м пока нет цены) */}
-          {(activeStep !== 3 || !showPrice) && (
+          {/* Мобильный индикатор прогресса */}
+          {(activeStep !== totalSteps - 1 || !showPrice) && (
             <MobileProgressIndicator 
               currentStep={activeStep + 1}
-              totalSteps={4}
+              totalSteps={totalSteps}
               stepName={getStepName()}
             />
           )}
           
-          {/* Блок стоимости на финальном шаге (вместо индикатора прогресса, только когда цена готова) */}
-          {activeStep === 3 && showPrice && estimatedPrice > 0 && (
+          {/* Блок стоимости на финальном шаге (только для варианта A, когда цена готова) */}
+          {abTestVariant === 'A' && activeStep === 2 && showPrice && estimatedPrice > 0 && (
             <div className="w-full flex justify-center mb-6">
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 inline-block border-2 border-[#083cb5]/30">
                 <div className="text-center space-y-2">
@@ -271,7 +338,9 @@ export function NewStepCalculator() {
           {/* Контент шага */}
           <StepContent />
         </div>
-      </div>
+          </div>
+        </div>
+      </section>
     </FormContext.Provider>
   );
 }
@@ -281,10 +350,11 @@ export function NewStepCalculator() {
 // ============================================================================
 function ParametersPanel() {
   const ctx = useFormContext() as any;
-  const { from, fromCoords, to, toCoords, errors, activeStep, transportType, volumeIndex, weightIndex, cargoErrors, estimatedPrice, distance, deliveryDays, isConstructorUsed, showPrice, packaging, palletCount, palletWeight } = ctx;
+  const { from, fromCoords, to, toCoords, errors, activeStep, transportType, volumeIndex, weightIndex, cargoErrors, estimatedPrice, distance, deliveryDays, isConstructorUsed, showPrice, packaging, palletCount, palletWeight, abTestVariant } = ctx;
   const hasRoute = from && to && fromCoords && toCoords && !errors.from && !errors.to;
   const hasCargoErrors = cargoErrors && (cargoErrors.volume || cargoErrors.weight);
   const isMoving = transportType === "Домашний переезд";
+  const showPriceBlock = abTestVariant === 'A'; // Показывать блок цены только в варианте A
   
   // Расчёт объёма для палет (1.2м × 0.8м × 0.15м = 0.144 м³)
   const palletVolume = 0.144;
@@ -369,27 +439,6 @@ function ParametersPanel() {
           </>
         )}
         
-        {/* Блок стоимости */}
-        <div className="mt-3 pt-3 border-t border-gray-300">
-          <div className="text-gray-700 text-xs font-medium mb-2 text-center">
-            Предварительная стоимость:
-          </div>
-          <div className="text-[#083cb5] text-2xl font-bold text-center mb-3">
-            {estimatedPrice ? `${estimatedPrice.toLocaleString('ru-RU')} ₽` : '0 ₽'}
-          </div>
-          
-          {/* Расстояние и срок доставки (показываются только после расчёта) */}
-          {showPrice && distance && (
-            <div className="text-gray-700 text-xs mt-2 text-center">
-              Расстояние: {Math.round(distance / 1000)} км
-            </div>
-          )}
-          {showPrice && deliveryDays && (
-            <div className="text-gray-700 text-xs text-center">
-              Срок доставки: {deliveryDays}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -400,18 +449,25 @@ function ParametersPanel() {
 // ============================================================================
 function StepsRow() {
   const ctx = useFormContext() as any;
-  const { activeStep, setActiveStep, setFrom, setFromCoords, setTo, setToCoords, setErrors, setTransportType, setVolumeIndex, setWeightIndex, setContactMethod, setUserContact, setEstimatedPrice, setDistance, setDeliveryDays } = ctx;
+  const { activeStep, abTestVariant, setActiveStep, setFrom, setFromCoords, setTo, setToCoords, setErrors, setTransportType, setVolumeIndex, setWeightIndex, setContactMethod, setUserContact, setEstimatedPrice, setDistance, setDeliveryDays } = ctx;
+
+  const totalSteps = abTestVariant === 'A' ? 3 : 4;
+  const finalStep = totalSteps - 1;
 
   const getStepLabel = (index: number) => {
     if (index === 0) return "Маршрут";
     if (index === 1) return activeStep >= 1 ? "Параметры груза" : "Шаг 2";
-    if (index === 2) return activeStep >= 2 ? "Контакты" : "Шаг 3";
-    if (index === 3) return "Расчет стоимости";
+    if (abTestVariant === 'A') {
+      if (index === 2) return "Цена";
+    } else {
+      if (index === 2) return activeStep >= 2 ? "Контакты" : "Шаг 3";
+      if (index === 3) return "Цена";
+    }
     return "";
   };
 
   const handleStepClick = (targetStep: number) => {
-    if (targetStep === 3 || targetStep >= activeStep) return;
+    if (targetStep === finalStep || targetStep >= activeStep) return;
     
     if (targetStep === 0) {
       setFrom(""); setFromCoords(undefined); setTo(""); setToCoords(undefined);
@@ -421,7 +477,7 @@ function StepsRow() {
     } else if (targetStep === 1) {
       setVolumeIndex(0); setWeightIndex(0); setContactMethod("");
       setUserContact(""); setEstimatedPrice(0); setDistance(null); setDeliveryDays("");
-    } else if (targetStep === 2) {
+    } else if (targetStep === 2 && abTestVariant === 'B') {
       setContactMethod(""); setUserContact(""); setEstimatedPrice(0);
       setDistance(null); setDeliveryDays("");
     }
@@ -429,36 +485,48 @@ function StepsRow() {
     setActiveStep(targetStep);
   };
 
-  return (
-    <div className="flex" style={{ height: '24px' }}>
-      {[0, 1, 2, 3].map((i) => {
-        const isClickable = i !== 3 && i < activeStep;
-        return (
-          <div 
-            key={i} 
-            className={i ? "-ml-[10px]" : undefined}
-            onClick={isClickable ? () => handleStepClick(i) : undefined}
-            style={{ cursor: isClickable ? 'pointer' : 'default' }}
-          >
-            <Signpost text={getStepLabel(i)} active={i === activeStep} />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+    return (
+      <div className="flex" style={{ height: '35px', width: '100%' }}>
+        {Array.from({ length: totalSteps }, (_, i) => i).map((i) => {
+          const isClickable = i !== finalStep && i < activeStep;
+          return (
+            <div 
+              key={i} 
+              className={i ? "-ml-[10px]" : undefined}
+              onClick={isClickable ? () => handleStepClick(i) : undefined}
+              style={{ 
+                cursor: isClickable ? 'pointer' : 'default',
+                flex: 1,
+                minWidth: 0,
+                display: 'flex'
+              }}
+            >
+              <Signpost text={getStepLabel(i)} active={i === activeStep} />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
 // ============================================================================
 // КОНТЕНТ ШАГОВ
 // ============================================================================
 function StepContent() {
   const ctx = useFormContext() as any;
-  const { activeStep } = ctx;
+  const { activeStep, abTestVariant } = ctx;
 
   if (activeStep === 0) return <Step1Route />;
   if (activeStep === 1) return <Step2Cargo />;
-  if (activeStep === 2) return <Step3Contacts />;
-  if (activeStep === 3) return <Step4Calculate />;
+  
+  if (abTestVariant === 'A') {
+    // Вариант A: 3 шага
+    if (activeStep === 2) return <Step3CalculateVariantA />;
+  } else {
+    // Вариант B: 4 шага
+    if (activeStep === 2) return <Step3ContactsVariantB />;
+    if (activeStep === 3) return <Step4CalculateVariantB />;
+  }
 
   return null;
 }
@@ -466,7 +534,7 @@ function StepContent() {
 // ШАГ 1: МАРШРУТ
 function Step1Route() {
   const ctx = useFormContext() as any;
-  const { from, to, fromCoords, toCoords, transportType, setFrom, setFromCoords, setTo, setToCoords, setTransportType, setErrors, setActiveStep } = ctx;
+  const { from, to, fromCoords, toCoords, transportType, activeStep, abTestVariant, hasStartedFilling, setFrom, setFromCoords, setTo, setToCoords, setTransportType, setErrors, setActiveStep, setHasStartedFilling } = ctx;
 
   const handleNext = () => {
     const validation = validateRouteFields(from, to, fromCoords, toCoords);
@@ -490,12 +558,30 @@ function Step1Route() {
   ];
 
   return (
-    <div className="mt-4 lg:mt-[55px] lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
+    <div className="mt-4 lg:mt-[20px] lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
+      {/* Блок "0 ₽" - приманка для варианта A (только на шагах 0-1) */}
+      {abTestVariant === 'A' && activeStep < 2 && (
+        <div className="w-full text-center mb-2">
+          <span className="text-gray-700 text-sm font-medium">Предварительная стоимость: </span>
+          <span className="text-[#083cb5] text-xl font-bold">0 ₽</span>
+        </div>
+      )}
+      
       <div className="w-full flex flex-col lg:flex-row gap-4">
         <div className="flex-1">
           <CityInput
             value={from}
             onChange={(v, coords) => {
+              // Отправляем событие "начало заполнения" только один раз
+              if (!hasStartedFilling) {
+                setHasStartedFilling(true);
+                if (typeof window !== 'undefined' && (window as any).ym) {
+                  (window as any).ym(98742465, 'reachGoal', 'form_start_filling', {
+                    ab_test_variant: abTestVariant
+                  });
+                  console.log(`📊 [Яндекс.Метрика] Начало заполнения формы (вариант ${abTestVariant})`);
+                }
+              }
               setFrom(v);
               setFromCoords(coords);
             }}
@@ -507,6 +593,16 @@ function Step1Route() {
           <CityInput
             value={to}
             onChange={(v, coords) => {
+              // Отправляем событие "начало заполнения" только один раз
+              if (!hasStartedFilling) {
+                setHasStartedFilling(true);
+                if (typeof window !== 'undefined' && (window as any).ym) {
+                  (window as any).ym(98742465, 'reachGoal', 'form_start_filling', {
+                    ab_test_variant: abTestVariant
+                  });
+                  console.log(`📊 [Яндекс.Метрика] Начало заполнения формы (вариант ${abTestVariant})`);
+                }
+              }
               setTo(v);
               setToCoords(coords);
             }}
@@ -562,7 +658,7 @@ function Step2Cargo() {
   const ctx = useFormContext() as any;
   const { 
     transportType, volumeIndex, weightIndex, cargoErrors, isConstructorUsed,
-    packaging, palletCount, palletWeight,
+    packaging, palletCount, palletWeight, activeStep, abTestVariant,
     setVolumeIndex, setWeightIndex, setActiveStep, setCargoErrors,
     setConstructorItems, setConstructorUrl, setIsConstructorUsed,
     setPackaging, setPalletCount, setPalletWeight
@@ -650,7 +746,15 @@ function Step2Cargo() {
 
   return (
     <>
-      <div className="mt-4 lg:mt-[55px] lg:px-[40px] flex flex-col items-center gap-4">
+      <div className="mt-4 lg:mt-[20px] lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
+        {/* Блок "0 ₽" - приманка для варианта A (только на шагах 0-1) */}
+        {abTestVariant === 'A' && activeStep < 2 && (
+          <div className="w-full text-center mb-2">
+            <span className="text-gray-700 text-sm font-medium">Предварительная стоимость: </span>
+            <span className="text-[#083cb5] text-xl font-bold">0 ₽</span>
+          </div>
+        )}
+        
         {isMoving ? (
           <>
             <div className="w-full">
@@ -805,42 +909,11 @@ function Step2Cargo() {
   );
 }
 
-// ШАГ 3: КОНТАКТЫ
-function Step3Contacts() {
-  const ctx = useFormContext() as any;
-  const { contactMethod, userContact, setContactMethod, setUserContact, setActiveStep } = ctx;
-
-  const handleCalculate = () => {
-    if (!contactMethod || !userContact || userContact.trim() === "" || userContact.trim() === "+7" || userContact.trim() === "+7 ") {
-      return;
-    }
-    setActiveStep(3);
-  };
-
-  return (
-    <div className="mt-4 lg:mt-[55px] lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
-      <div className="w-full">
-        <div className="text-[#050b18] text-center mb-4 font-medium text-sm lg:text-base">
-          Для получения стоимости введите свой номер телефона или WhatsApp
-        </div>
-        
-        <ContactMethodInput
-          contactMethod={contactMethod}
-          userContact={userContact}
-          onContactMethodChange={setContactMethod}
-          onUserContactChange={setUserContact}
-        />
-      </div>
-
-      <Button className="px-10 w-full lg:w-auto" onClick={handleCalculate}>
-        Рассчитать стоимость
-      </Button>
-    </div>
-  );
-}
-
-// ШАГ 4: РАСЧЁТ СТОИМОСТИ
-function Step4Calculate() {
+// ============================================================================
+// ВАРИАНТ A: 3 ШАГА С РАЗМЫТОЙ ЦЕНОЙ
+// ============================================================================
+// ШАГ 3 ВАРИАНТ A: СТОИМОСТЬ ПЕРЕВОЗКИ (с размытой ценой и выбором способа)
+function Step3CalculateVariantA() {
   const ctx = useFormContext() as any;
   const { 
     from, to, fromCoords, toCoords, 
@@ -849,6 +922,7 @@ function Step4Calculate() {
     isSubmitting, estimatedPrice, distance, deliveryDays, showPrice,
     constructorItems, constructorUrl, isConstructorUsed,
     packaging, palletCount, palletWeight,
+    setContactMethod, setUserContact,
     setIsSubmitting, setEstimatedPrice, setDistance, setDeliveryDays, setShowPrice
   } = ctx;
   
@@ -865,22 +939,16 @@ function Step4Calculate() {
   
   // Флаг для предотвращения повторной отправки
   const hasSubmitted = React.useRef(false);
+  
+  // Состояние для предварительного расчёта (размытая цена)
+  const [previewPrice, setPreviewPrice] = useState(0);
+  const [previewDistance, setPreviewDistance] = useState<number | null>(null);
+  const [previewDeliveryDays, setPreviewDeliveryDays] = useState("");
+  const [showValidationError, setShowValidationError] = useState(false);
 
+  // Предварительный расчёт стоимости при монтировании компонента
   React.useEffect(() => {
-    // Если уже отправляли - выходим
-    if (hasSubmitted.current) {
-      console.log('⚠️ [Step4Calculate] Заявка уже отправлена, пропускаем');
-      return;
-    }
-    
-    const submitAndCalculate = async () => {
-      console.log('🚀 [Step4Calculate] ========== НАЧАЛО РАСЧЁТА И ОТПРАВКИ ==========');
-      console.log('🚀 [Step4Calculate] hasSubmitted.current:', hasSubmitted.current);
-      
-      // Устанавливаем флаг сразу
-      hasSubmitted.current = true;
-      setIsSubmitting(true);
-
+    const calculatePreview = async () => {
       try {
         if (!window.ymaps) {
           await loadYandexMapsScript();
@@ -889,129 +957,240 @@ function Step4Calculate() {
         const routeData = await calculateRoute(fromCoords!, toCoords!);
         const distanceMeters = routeData.distance;
         const distanceKm = distanceMeters / 1000;
-        setDistance(distanceMeters);
+        setPreviewDistance(distanceMeters);
         
         const days = calculateDeliveryDays(distanceKm);
         const formattedDays = formatDeliveryDays(days);
-        setDeliveryDays(formattedDays);
+        setPreviewDeliveryDays(formattedDays);
 
-        // Определяем объём и вес в зависимости от типа перевозки и упаковки
+        // Определяем объём и вес
         let volume: number;
         let weight: number;
         
         if (isMoving) {
-          // Домашний переезд
           volume = VOLUME_STEPS_MOVING[volumeIndex];
           weight = 0;
         } else if (packaging === "pallets") {
-          // Коммерческие грузы на палетах
           volume = totalPalletVolume;
           weight = totalPalletWeight;
         } else {
-          // Коммерческие грузы в коробках/россыпью
           volume = VOLUME_STEPS_COMMERCIAL[volumeIndex];
           weight = WEIGHT_STEPS_COMMERCIAL[weightIndex];
         }
-        
-        console.log('💰 [Step4Calculate] Параметры груза:', {
-          transportType, 
-          packaging,
-          volume, 
-          weight, 
-          isConstructorUsed,
-          palletCount,
-          palletWeight,
-          constructorItemsCount: constructorItems?.length || 0,
-          constructorUrl
-        });
         
         const calculationResult = calculateShippingCost(
           from, to, distanceKm, weight, volume, undefined, fromCoords, toCoords
         );
         
-        if (!calculationResult) {
-          throw new Error('Не удалось рассчитать стоимость перевозки');
+        if (calculationResult) {
+          setPreviewPrice(calculationResult.cost);
+          console.log('💰 [VariantA] Предварительная цена рассчитана:', calculationResult.cost);
         }
-        
-        const price = calculationResult.cost;
-        const truckCapacity = calculationResult.truckCapacity;
-        setEstimatedPrice(price);
-
-        // Подготовка данных конструктора
-        console.log('🔍 [Step4Calculate] ===== ПРОВЕРКА ДАННЫХ КОНСТРУКТОРА =====');
-        console.log('🔍 [Step4Calculate] isConstructorUsed:', isConstructorUsed);
-        console.log('🔍 [Step4Calculate] constructorItems:', constructorItems);
-        console.log('🔍 [Step4Calculate] constructorItems?.length:', constructorItems?.length);
-        console.log('🔍 [Step4Calculate] constructorUrl:', constructorUrl);
-        console.log('🔍 [Step4Calculate] typeof constructorUrl:', typeof constructorUrl);
-        console.log('🔍 [Step4Calculate] constructorUrl === undefined:', constructorUrl === undefined);
-        
-        const leadData = {
-          fromCity: from,
-          toCity: to,
-          phone: userContact,
-          distance: distanceKm,
-          weight: weight,
-          volume: volume,
-          cost: price,
-          truckCapacity: truckCapacity,
-          contactMethod: contactMethod as 'phone' | 'whatsapp',
-          deliveryDays: formattedDays,
-          additionalInfo: {
-            transportType: transportType,
-            isConstructorUsed: isConstructorUsed,
-            constructorUrl: constructorUrl,
-            constructorItems: constructorItems,
-            // Данные упаковки для коммерческих грузов
-            packaging: !isMoving ? packaging : undefined,
-            newPalletCount: packaging === "pallets" ? palletCount : undefined,
-            newPalletWeight: packaging === "pallets" ? palletWeight : undefined,
-          }
-        };
-        
-        console.log('📤 [Step4Calculate] ===== ДАННЫЕ ДЛЯ BITRIX24 =====');
-        console.log('📤 [Step4Calculate] Полный объект leadData:', JSON.stringify(leadData, null, 2));
-        console.log('📤 [Step4Calculate] additionalInfo.constructorUrl:', leadData.additionalInfo.constructorUrl);
-        console.log('📤 [Step4Calculate] additionalInfo.constructorItems (количество):', leadData.additionalInfo.constructorItems?.length || 0);
-
-        const bitrixResult = await createBitrix24Lead(leadData);
-        
-        if (bitrixResult.success) {
-          console.log(`✅ [Step4Calculate] Заявка отправлена! Lead ID: ${bitrixResult.leadId}`);
-          setShowPrice(true);
-        } else {
-          console.error(`❌ [Step4Calculate] Ошибка Bitrix24: ${bitrixResult.error}`);
-          toast.error(`Ошибка при отправке: ${bitrixResult.error}`);
-        }
-
       } catch (error) {
-        console.error('❌ [Step4Calculate] Критическая ошибка:', error);
-        toast.error(`Произошла ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
-        // При ошибке сбрасываем флаг, чтобы можно было повторить
-        hasSubmitted.current = false;
-      } finally {
-        setIsSubmitting(false);
+        console.error('❌ [VariantA] Ошибка предварительного расчёта:', error);
       }
     };
 
-    submitAndCalculate();
-  }, []); // Пустой массив зависимостей - выполняется один раз при монтировании
+    calculatePreview();
+  }, []);
+
+  // Функция отправки и расчёта
+  const handleCalculate = async () => {
+    // Валидация контактов
+    if (!contactMethod || !userContact || userContact.trim() === "" || userContact.trim() === "+7" || userContact.trim() === "+7 ") {
+      setShowValidationError(true);
+      return;
+    }
+    
+    setShowValidationError(false);
+
+    // Если уже отправляли - выходим
+    if (hasSubmitted.current) {
+      console.log('⚠️ [VariantA] Заявка уже отправлена, пропускаем');
+      return;
+    }
+    
+    console.log('🚀 [VariantA] ========== НАЧАЛО РАСЧЁТА И ОТПРАВКИ ==========');
+      
+    // Устанавливаем флаг сразу
+    hasSubmitted.current = true;
+    setIsSubmitting(true);
+
+    try {
+      // Используем уже рассчитанные данные из preview
+      setDistance(previewDistance);
+      setDeliveryDays(previewDeliveryDays);
+      setEstimatedPrice(previewPrice);
+
+      // Определяем объём и вес в зависимости от типа перевозки и упаковки
+      let volume: number;
+      let weight: number;
+      
+      if (isMoving) {
+        // Домашний переезд
+        volume = VOLUME_STEPS_MOVING[volumeIndex];
+        weight = 0;
+      } else if (packaging === "pallets") {
+        // Коммерческие грузы на палетах
+        volume = totalPalletVolume;
+        weight = totalPalletWeight;
+      } else {
+        // Коммерческие грузы в коробках/россыпью
+        volume = VOLUME_STEPS_COMMERCIAL[volumeIndex];
+        weight = WEIGHT_STEPS_COMMERCIAL[weightIndex];
+      }
+      
+      const distanceKm = previewDistance ? previewDistance / 1000 : 0;
+      
+      const calculationResult = calculateShippingCost(
+        from, to, distanceKm, weight, volume, undefined, fromCoords, toCoords
+      );
+      
+      const truckCapacity = calculationResult?.truckCapacity || '';
+
+      const leadData = {
+        fromCity: from,
+        toCity: to,
+        phone: userContact,
+        distance: distanceKm,
+        weight: weight,
+        volume: volume,
+        cost: previewPrice,
+        truckCapacity: truckCapacity,
+        contactMethod: contactMethod as 'phone' | 'whatsapp',
+        deliveryDays: previewDeliveryDays,
+        additionalInfo: {
+          transportType: transportType,
+          isConstructorUsed: isConstructorUsed,
+          constructorUrl: constructorUrl,
+          constructorItems: constructorItems,
+          packaging: !isMoving ? packaging : undefined,
+          newPalletCount: packaging === "pallets" ? palletCount : undefined,
+          newPalletWeight: packaging === "pallets" ? palletWeight : undefined,
+          abTestVariant: 'A',
+          abTestTimestamp: sessionStorage.getItem('ab_test_start'),
+        }
+      };
+
+      const bitrixResult = await createBitrix24Lead(leadData);
+      
+      if (bitrixResult.success) {
+        console.log(`✅ [VariantA] Заявка отправлена! Lead ID: ${bitrixResult.leadId}`);
+        setShowPrice(true);
+        
+        // Отправляем событие конверсии в Яндекс.Метрику
+        if (typeof window !== 'undefined' && (window as any).ym) {
+          (window as any).ym(98742465, 'reachGoal', 'form_submit_variant_a', {
+            ab_test_variant: 'A',
+            contact_method: contactMethod
+          });
+        }
+      } else {
+        console.error(`❌ [VariantA] Ошибка Bitrix24: ${bitrixResult.error}`);
+        toast.error(`Ошибка при отправке: ${bitrixResult.error}`);
+      }
+
+    } catch (error) {
+      console.error('❌ [VariantA] Критическая ошибка:', error);
+      toast.error(`Произошла ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+      hasSubmitted.current = false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="mt-4 lg:mt-[55px] lg:px-[40px] flex flex-col items-center gap-4">
-      {isSubmitting ? (
-        <div className="bg-white/90 rounded-lg p-4 lg:p-6 text-center w-full">
-          <div className="mb-4">
-            <div className="inline-block animate-spin rounded-full h-10 w-10 lg:h-12 lg:w-12 border-b-2 border-[#083cb5]"></div>
+    <div className="mt-4 lg:mt-[20px] lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
+      {!showPrice ? (
+        // Форма выбора способа получения расчёта
+        <>
+          {/* Блок с размытой стоимостью */}
+          {previewPrice > 0 && (
+            <div className="w-full mb-2">
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#083cb5]/30">
+                <div className="flex flex-col lg:flex-row gap-4 items-center">
+                  {/* Левая часть: Размытая цена */}
+                  <div className="flex-shrink-0 text-center lg:text-left">
+                    <div className="text-gray-600 text-xs mb-1">Предварительная стоимость</div>
+                    <div 
+                      className="text-[#083cb5] text-3xl font-bold"
+                      style={{
+                        filter: 'blur(15px)',
+                        userSelect: 'none',
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      {previewPrice.toLocaleString('ru-RU')} ₽
+                    </div>
+                    {previewDistance && previewDeliveryDays && (
+                      <div 
+                        className="text-gray-700 text-xs mt-1"
+                        style={{
+                          filter: 'blur(8px)',
+                          userSelect: 'none',
+                          pointerEvents: 'none'
+                        }}
+                      >
+                        {Math.round(previewDistance / 1000)} км • {previewDeliveryDays}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Правая часть: Объяснение */}
+                  <div className="flex-1 bg-[#f0f3f5] rounded-lg p-3">
+                    <p className="text-green-600 text-base lg:text-lg font-bold mb-2 text-center">
+                      🔒 Стоимость рассчитана
+                    </p>
+                    <p className="text-gray-700 text-xs leading-relaxed text-center">
+                      Для предотвращения массовых автоматических расчётов, мы отправляем стоимость только по <strong>WhatsApp</strong> или <strong>СМС</strong>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="w-full">
+            <div className="text-[#050b18] text-center mb-4 font-medium text-sm lg:text-base">
+              Выберите, как получить расчёт
+            </div>
+            
+            <ContactMethodInput
+              contactMethod={contactMethod}
+              userContact={userContact}
+              onContactMethodChange={setContactMethod}
+              onUserContactChange={setUserContact}
+            />
           </div>
-          <p className="text-[#050b18] text-base lg:text-lg font-semibold mb-2">
-            Отправка заявки для точного расчёта...
-          </p>
-          <p className="text-gray-600 text-xs lg:text-sm">
-            Пожалуйста, подождите
-          </p>
-        </div>
+
+          <Button 
+            className="px-10 w-full lg:w-auto" 
+            onClick={handleCalculate}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Отправка...
+              </>
+            ) : (
+              contactMethod === "whatsapp" 
+                ? "Получить расчёт по WhatsApp" 
+                : contactMethod === "phone"
+                  ? "Получить расчёт по СМС"
+                  : "Получить расчёт"
+            )}
+          </Button>
+          
+          {/* Сообщение об ошибке валидации */}
+          {showValidationError && (
+            <div className="text-red-600 text-sm text-center font-medium">
+              ⚠️ Пожалуйста, выберите способ связи и введите номер телефона
+            </div>
+          )}
+        </>
       ) : (
+        // Результат после отправки
         <div className="bg-white/90 rounded-lg p-4 lg:p-6 text-center w-full space-y-4">
           <p className="text-[#050b18] text-base lg:text-lg font-semibold">
             ✅ Ваша заявка принята!
@@ -1021,7 +1200,7 @@ function Step4Calculate() {
           </p>
           
           {/* Блок с ценой и деталями - только для desktop */}
-          {showPrice && estimatedPrice > 0 && (
+          {estimatedPrice > 0 && (
             <div className="hidden lg:block bg-white rounded-lg p-4 border border-[#083cb5]/20">
               <div className="text-[#083cb5] text-2xl lg:text-3xl font-bold mb-3">
                 {estimatedPrice.toLocaleString('ru-RU')} ₽
@@ -1042,7 +1221,233 @@ function Step4Calculate() {
           )}
           
           <p className="text-gray-600 text-xs lg:text-sm">
-            Наш менеджер свяжется с вами в течение 10 минут для уточнения деталей и подтверждения финальной стоимости.
+            {contactMethod === "whatsapp" 
+              ? "Расчёт отправлен в WhatsApp. Наш менеджер свяжется с вами в течение 10 минут для уточнения деталей."
+              : "Расчёт отправлен по СМС. Наш менеджер свяжется с вами в течение 10 минут для уточнения деталей."
+            }
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// ВАРИАНТ B: 4 ШАГА БЕЗ ПОКАЗА ЦЕНЫ
+// ============================================================================
+// ШАГ 3 ВАРИАНТ B: КОНТАКТЫ (простой ввод телефона)
+function Step3ContactsVariantB() {
+  const ctx = useFormContext() as any;
+  const { userContact, setUserContact, setActiveStep } = ctx;
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    value = value.replace(/[^\d+]/g, '');
+    
+    if (!value || value === '+') {
+      value = '+7 ';
+      setUserContact(value);
+      return;
+    }
+    
+    if (!value.startsWith('+7')) {
+      value = '+7 ' + value.replace(/^\+?7?/, '');
+    }
+    
+    const digits = value.slice(2).replace(/\s/g, '');
+    let formatted = '+7';
+    if (digits.length > 0) formatted += ' ' + digits.substring(0, 3);
+    if (digits.length > 3) formatted += ' ' + digits.substring(3, 6);
+    if (digits.length > 6) formatted += ' ' + digits.substring(6, 8);
+    if (digits.length > 8) formatted += ' ' + digits.substring(8, 10);
+    
+    if (digits.length > 10) {
+      formatted = formatted.slice(0, 16);
+    }
+    
+    setUserContact(formatted);
+  };
+
+  const handleNext = () => {
+    if (!userContact || userContact.trim() === "" || userContact.trim() === "+7" || userContact.trim() === "+7 ") {
+      return;
+    }
+    setActiveStep(3);
+  };
+
+  return (
+    <div className="mt-4 lg:mt-[20px] lg:px-[40px] flex flex-col items-center gap-4 lg:gap-6">
+      <div className="w-full">
+        <div className="text-[#050b18] text-center mb-4 font-medium text-sm lg:text-base">
+          Введите ваш номер телефона
+        </div>
+        
+        <div className="flex justify-center">
+          <div className="relative max-w-md w-full">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
+            <Input
+              type="tel"
+              placeholder="Ваш телефон"
+              value={userContact}
+              onChange={handlePhoneChange}
+              onFocus={(e) => {
+                if (!e.target.value) {
+                  setUserContact('+7 ');
+                }
+              }}
+              className="h-10 pl-10 bg-white w-full"
+              autoComplete="tel"
+            />
+          </div>
+        </div>
+      </div>
+
+      <Button 
+        className="px-10 w-full lg:w-auto" 
+        onClick={handleNext}
+        disabled={!userContact || userContact.trim() === "" || userContact.trim() === "+7" || userContact.trim() === "+7 "}
+      >
+        Рассчитать стоимость
+      </Button>
+    </div>
+  );
+}
+
+// ШАГ 4 ВАРИАНТ B: РАСЧЁТ СТОИМОСТИ (подтверждение без показа цены)
+function Step4CalculateVariantB() {
+  const ctx = useFormContext() as any;
+  const { 
+    from, to, fromCoords, toCoords, 
+    transportType, volumeIndex, weightIndex, 
+    userContact, isSubmitting,
+    constructorItems, constructorUrl, isConstructorUsed,
+    packaging, palletCount, palletWeight,
+    setIsSubmitting, setShowPrice
+  } = ctx;
+  
+  const isMoving = transportType === "Домашний переезд";
+  const hasSubmitted = React.useRef(false);
+
+  React.useEffect(() => {
+    if (hasSubmitted.current) return;
+    
+    const submitLead = async () => {
+      hasSubmitted.current = true;
+      setIsSubmitting(true);
+
+      try {
+        if (!window.ymaps) {
+          await loadYandexMapsScript();
+        }
+        
+        const routeData = await calculateRoute(fromCoords!, toCoords!);
+        const distanceKm = routeData.distance / 1000;
+        const formattedDays = formatDeliveryDays(calculateDeliveryDays(distanceKm));
+
+        // Определяем объём и вес
+        let volume: number;
+        let weight: number;
+        
+        const palletVolume = 0.144;
+        const totalPalletVolume = packaging === "pallets" && palletCount && palletWeight 
+          ? parseFloat(palletCount) * palletVolume : 0;
+        const totalPalletWeight = packaging === "pallets" && palletCount && palletWeight 
+          ? parseFloat(palletCount) * parseFloat(palletWeight) : 0;
+        
+        if (isMoving) {
+          volume = VOLUME_STEPS_MOVING[volumeIndex];
+          weight = 0;
+        } else if (packaging === "pallets") {
+          volume = totalPalletVolume;
+          weight = totalPalletWeight;
+        } else {
+          volume = VOLUME_STEPS_COMMERCIAL[volumeIndex];
+          weight = WEIGHT_STEPS_COMMERCIAL[weightIndex];
+        }
+        
+        const calculationResult = calculateShippingCost(
+          from, to, distanceKm, weight, volume, undefined, fromCoords, toCoords
+        );
+        
+        const leadData = {
+          fromCity: from,
+          toCity: to,
+          phone: userContact,
+          distance: distanceKm,
+          weight: weight,
+          volume: volume,
+          cost: calculationResult?.cost || 0,
+          truckCapacity: calculationResult?.truckCapacity || '',
+          contactMethod: 'phone' as const,
+          deliveryDays: formattedDays,
+          additionalInfo: {
+            transportType: transportType,
+            isConstructorUsed: isConstructorUsed,
+            constructorUrl: constructorUrl,
+            constructorItems: constructorItems,
+            packaging: !isMoving ? packaging : undefined,
+            newPalletCount: packaging === "pallets" ? palletCount : undefined,
+            newPalletWeight: packaging === "pallets" ? palletWeight : undefined,
+            abTestVariant: 'B',
+            abTestTimestamp: sessionStorage.getItem('ab_test_start'),
+          }
+        };
+
+        const bitrixResult = await createBitrix24Lead(leadData);
+        
+        if (bitrixResult.success) {
+          console.log(`✅ [VariantB] Заявка отправлена! Lead ID: ${bitrixResult.leadId}`);
+          setShowPrice(true);
+          
+          // Отправляем событие конверсии в Яндекс.Метрику
+          if (typeof window !== 'undefined' && (window as any).ym) {
+            (window as any).ym(98742465, 'reachGoal', 'form_submit_variant_b', {
+              ab_test_variant: 'B'
+            });
+          }
+        } else {
+          toast.error(`Ошибка при отправке: ${bitrixResult.error}`);
+        }
+
+      } catch (error) {
+        console.error('❌ [VariantB] Ошибка:', error);
+        toast.error(`Произошла ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+        hasSubmitted.current = false;
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    submitLead();
+  }, []);
+
+  return (
+    <div className="mt-4 lg:mt-[20px] lg:px-[40px] flex flex-col items-center gap-4">
+      {isSubmitting ? (
+        <div className="bg-white/90 rounded-lg p-4 lg:p-6 text-center w-full">
+          <div className="mb-4">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 lg:h-12 lg:w-12 border-b-2 border-[#083cb5]"></div>
+          </div>
+          <p className="text-[#050b18] text-base lg:text-lg font-semibold mb-2">
+            Отправка заявки...
+          </p>
+          <p className="text-gray-600 text-xs lg:text-sm">
+            Пожалуйста, подождите
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white/90 rounded-lg p-4 lg:p-6 text-center w-full space-y-4">
+          <p className="text-[#050b18] text-base lg:text-lg font-semibold">
+            ✅ Ваша заявка принята!
+          </p>
+          <div className="text-[#083cb5] text-3xl lg:text-4xl font-bold my-4">
+            📞
+          </div>
+          <p className="text-gray-700 text-sm lg:text-base leading-relaxed">
+            Наш логист свяжется с вами в течение <strong>10 минут</strong> и озвучит точную стоимость перевозки с учётом всех деталей.
+          </p>
+          <p className="text-gray-600 text-xs lg:text-sm">
+            Мы позвоним на номер: <strong>{userContact}</strong>
           </p>
         </div>
       )}

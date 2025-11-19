@@ -582,10 +582,12 @@ function Step1Route() {
               if (!hasStartedFilling) {
                 setHasStartedFilling(true);
                 if (typeof window !== 'undefined' && (window as any).ym) {
-                  (window as any).ym(98742465, 'reachGoal', 'form_start_filling', {
+                  // Отправляем событие с суффиксом варианта для A/B теста
+                  const eventName = `form_start_filling_variant_${abTestVariant.toLowerCase()}`;
+                  (window as any).ym(98742465, 'reachGoal', eventName, {
                     ab_test_variant: abTestVariant
                   });
-                  console.log(`📊 [Яндекс.Метрика] Начало заполнения формы (вариант ${abTestVariant})`);
+                  console.log(`📊 [Яндекс.Метрика] Начало заполнения формы: ${eventName}`);
                 }
               }
               setFrom(v);
@@ -603,10 +605,12 @@ function Step1Route() {
               if (!hasStartedFilling) {
                 setHasStartedFilling(true);
                 if (typeof window !== 'undefined' && (window as any).ym) {
-                  (window as any).ym(98742465, 'reachGoal', 'form_start_filling', {
+                  // Отправляем событие с суффиксом варианта для A/B теста
+                  const eventName = `form_start_filling_variant_${abTestVariant.toLowerCase()}`;
+                  (window as any).ym(98742465, 'reachGoal', eventName, {
                     ab_test_variant: abTestVariant
                   });
-                  console.log(`📊 [Яндекс.Метрика] Начало заполнения формы (вариант ${abTestVariant})`);
+                  console.log(`📊 [Яндекс.Метрика] Начало заполнения формы: ${eventName}`);
                 }
               }
               setTo(v);
@@ -1205,8 +1209,8 @@ function Step3CalculateVariantA() {
             Предварительный расчёт стоимости перевозки готов.
           </p>
           
-          {/* Блок с ценой и деталями - только для desktop */}
-          {estimatedPrice > 0 && (
+          {/* ВРЕМЕННО ОТКЛЮЧЕНО: Блок с ценой и деталями - только для desktop */}
+          {/* {estimatedPrice > 0 && (
             <div className="hidden lg:block bg-white rounded-lg p-4 border border-[#083cb5]/20">
               <div className="text-[#083cb5] text-2xl lg:text-3xl font-bold mb-3">
                 {estimatedPrice.toLocaleString('ru-RU')} ₽
@@ -1224,7 +1228,7 @@ function Step3CalculateVariantA() {
                 </div>
               )}
             </div>
-          )}
+          )} */}
           
           <p className="text-gray-600 text-xs lg:text-sm">
             {contactMethod === "whatsapp" 

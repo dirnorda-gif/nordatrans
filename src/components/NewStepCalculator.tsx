@@ -53,7 +53,7 @@ function getABTestVariant(): 'A' | 'B' {
   
   // Отправляем событие в Яндекс.Метрику
   if (typeof window !== 'undefined' && (window as any).ym) {
-    (window as any).ym(98742465, 'params', {
+    (window as any).ym(57594511, 'params', {
       ab_test_variant: variant,
       ab_test_assigned: new Date().toISOString()
     });
@@ -584,7 +584,7 @@ function Step1Route() {
                 if (typeof window !== 'undefined' && (window as any).ym) {
                   // Отправляем событие с суффиксом варианта для A/B теста
                   const eventName = `form_start_filling_variant_${abTestVariant.toLowerCase()}`;
-                  (window as any).ym(98742465, 'reachGoal', eventName, {
+                  (window as any).ym(57594511, 'reachGoal', eventName, {
                     ab_test_variant: abTestVariant
                   });
                   console.log(`📊 [Яндекс.Метрика] Начало заполнения формы: ${eventName}`);
@@ -607,7 +607,7 @@ function Step1Route() {
                 if (typeof window !== 'undefined' && (window as any).ym) {
                   // Отправляем событие с суффиксом варианта для A/B теста
                   const eventName = `form_start_filling_variant_${abTestVariant.toLowerCase()}`;
-                  (window as any).ym(98742465, 'reachGoal', eventName, {
+                  (window as any).ym(57594511, 'reachGoal', eventName, {
                     ab_test_variant: abTestVariant
                   });
                   console.log(`📊 [Яндекс.Метрика] Начало заполнения формы: ${eventName}`);
@@ -1090,7 +1090,7 @@ function Step3CalculateVariantA() {
         
         // Отправляем событие конверсии в Яндекс.Метрику
         if (typeof window !== 'undefined' && (window as any).ym) {
-          (window as any).ym(98742465, 'reachGoal', 'form_submit_variant_a', {
+          (window as any).ym(57594511, 'reachGoal', 'form_submit_variant_a', {
             ab_test_variant: 'A',
             contact_method: contactMethod
           });
@@ -1419,7 +1419,7 @@ function Step4CalculateVariantB() {
           
           // Отправляем событие конверсии в Яндекс.Метрику
           if (typeof window !== 'undefined' && (window as any).ym) {
-            (window as any).ym(98742465, 'reachGoal', 'form_submit_variant_b', {
+            (window as any).ym(57594511, 'reachGoal', 'form_submit_variant_b', {
               ab_test_variant: 'B'
             });
           }

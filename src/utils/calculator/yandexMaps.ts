@@ -72,7 +72,7 @@ export const fetchSuggestions = async (
 
         return {
           displayName: fullName,
-          value: name,
+          value: fullName, // 🔧 ИСПРАВЛЕНО: теперь сохраняется полный адрес с городом
           coordinates,
         };
       })
